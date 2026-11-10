@@ -200,7 +200,15 @@
       return isNaN(v[k]) || !el.checkValidity();
     });
     if (bad.length) {
-      showWarnings(['請檢查紅框嘅數值（空白或者超出範圍）。']);
+      showWarnings(bad.map(function (k) {
+        var el = form.elements[k], lab = el.closest('label');
+        var name = MEAS_ZH[k] || (lab ? lab.firstChild.textContent.trim() : k);
+        var lo = el.min, hi = el.max, x = el.value.trim();
+        var msg = name + '：' + (x === '' ? '冇填' : '填咗 ' + x) + '，可以填 ' + lo + '–' + hi + (el.closest('fieldset') && /身體尺寸/.test(el.closest('fieldset').textContent) ? ' cm（唔知可以留空）' : '');
+        if (k === 'backLen' && parseFloat(x) > 50) msg += '。背長係由後頸點（低頭最凸嗰粒骨）直度落腰線，一般 37–42 cm；如果你度嘅係膊頭經胸點落腰，請填喺「前長」。';
+        if (k === 'frontLen' && parseFloat(x) > 60) msg += '。前長係由側頸點經胸點度落腰線。';
+        return msg;
+      }));
       return;
     }
     var saveV = {};
