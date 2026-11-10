@@ -132,3 +132,7 @@ label.req textarea {
 .quick button.chip.on { border: 2px solid #8a4b2a; background: #fff4ec; padding: 3px 1px 4px; font-weight: bold; }
 .quick .sub { color: #888; font-size: .78rem; margin: 2px 0 0; }
 .quick summary { cursor: pointer; padding: 8px 10px; background: #fff4ec; border: 1px solid #e3cbb8; border-radius: 8px; color: #8a4b2a; }
+
+details.skblock { margin: 8px 0; }
+details.skblock summary { cursor: pointer; padding: 6px 10px; background: #fff4ec; border: 1px solid #e3cbb8; border-radius: 8px; color: #8a4b2a; font-weight: bold; font-size: .9rem; }
+details.skblock[open] summary { margin-bottom: 4px; }

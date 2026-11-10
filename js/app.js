@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var PM = window.PM, f1 = PM.fmt;
+  function f2(x) { return String(Math.round(x * 100) / 100); }
   var form = document.getElementById('form');
   var preview = document.getElementById('preview');
   var STORE = 'pattern-maker-v2';
@@ -14,7 +15,8 @@
     'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext', 'collarW', 'cuffH',
     'skirtLen', 'skirtFlare', 'slitLen', 'bandW', 'hemSa',
     'yokeDepthB', 'yokeDepthF', 'yokeFull', 'sleevePuff', 'sleeveGather', 'ruffleW', 'ruffleRatio', 'skirtRatio',
-    'trouserLen', 'crotchDepth', 'outseam'];
+    'trouserLen', 'crotchDepth', 'outseam',
+    'skFB', 'skRaise', 'skCbDrop', 'skDF1', 'skDFLen', 'skDB1', 'skDB1Len', 'skDB2Len', 'skApex', 'skBandEase', 'skOver'];
   var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit', 'collar', 'pocket', 'cuff',
     'garment', 'skirtShape', 'skirtLenPreset', 'slit', 'zip', 'yoke', 'yokeFullType', 'ruffle',
     'trouserShape', 'trouserLenPreset', 'trouserWaist', 'dressType'];
@@ -127,7 +129,7 @@
     if (p !== 'custom') setVal('trouserLen', trouserLenFor(p, readForm()));
   });
   form.elements.garment.addEventListener('change', function () {
-    if (form.elements.garment.value === 'skirt') { setVal('easeWaist', 1); setVal('easeHip', 4); }
+    if (form.elements.garment.value === 'skirt') { setVal('easeWaist', 2); setVal('easeHip', 4); }
     else if (form.elements.garment.value === 'trousers') { setVal('easeWaist', 1); setVal('easeHip', 5); }
     else if (form.elements.garment.value === 'jacket') {
       var v0 = readForm();
@@ -229,7 +231,9 @@
       sleevePuff: v.sleeve === 'none' ? 0 : (v.sleevePuff || 0), sleeveGather: v.sleeve === 'none' ? 0 : (v.sleeveGather || 0),
       ruffle: v.ruffle, ruffleW: v.ruffleW || 6, ruffleRatio: v.ruffleRatio || 1.8, skirtRatio: v.skirtRatio || 1.6,
       trouserShape: v.trouserShape, trouserLen: v.trouserLen || v.outseam, trouserWaist: v.trouserWaist,
-      dressType: v.dressType
+      dressType: v.dressType,
+      skFB: v.skFB, skRaise: v.skRaise, skCbDrop: v.skCbDrop, skDF1: v.skDF1, skDFLen: v.skDFLen, skDB1: v.skDB1,
+      skDB1Len: v.skDB1Len, skDB2Len: v.skDB2Len, skApex: v.skApex, skBandEase: v.skBandEase, skOver: v.skOver
     };
     var res = PM.draft(m, ease, style);
     var model = PM.layout(res, { sa: v.sa, dims: v.dims });
@@ -302,7 +306,11 @@
         ['成品臀圍（連放鬆量）', i.hipTotal, i.hipTotal == null ? null : v.hip + v.easeHip],
         ['下擺圍', i.hemTotal],
         ['裙長（腰下，唔計腰頭）', i.len],
+        ['臀寬 後 / 前（每份）', null, null, i.hipB == null ? '' : f1(i.hipB) + ' / ' + f1(i.hipF)],
+        ['腰寬 後 / 前（每份，收省後）', null, null, f1(i.waistB) + ' / ' + f1(i.waistF)],
         ['後腰褶 / 前腰褶（每片）', null, null, i.dartsBack + ' / ' + i.dartsFront],
+        ['省位（距中線）後 / 前', null, null, (i.dartXsB || []).map(f2).join('、') + ' / ' + (i.dartXsF || []).map(f2).join('、')],
+        ['省長 後 / 前', null, null, (i.dartLensB || []).map(f1).join('、') + ' / ' + (i.dartLensF || []).map(f1).join('、')],
         ['側縫收腰（每邊）', i.sideTake],
         ['側縫長 後 / 前', null, null, f1(i.sideLen) + ' / ' + f1(i.sideLenF)],
         ['腰頭總長', i.bandLen]
@@ -884,6 +892,16 @@
 
   /* ---------- 啟動 ---------- */
   form.addEventListener('submit', function (e) { e.preventDefault(); generate(); });
+  // 改咗尺寸或者款式就自動重新計（打字停 0.4 秒後）
+  var autoT = null;
+  function autoGen(e) {
+    var t = e.target;
+    if (!t || t.type === 'file' || t.tagName === 'TEXTAREA' || t.closest('.thumb')) return;
+    clearTimeout(autoT);
+    autoT = setTimeout(generate, 400);
+  }
+  form.addEventListener('input', autoGen);
+  form.addEventListener('change', autoGen);
   document.getElementById('reset').onclick = function () { writeForm(defaults); generate(); };
 
   try {

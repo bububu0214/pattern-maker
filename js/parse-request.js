@@ -92,7 +92,7 @@
     } else if (Z(SKIRT_WORDS).test(src)) {
       trouserMode = false;
       skirtMode = true;
-      if (cur.garment !== 'skirt') { put('garment', 'skirt'); put('easeWaist', 1); put('easeHip', 4); done.push('改做半截裙'); }
+      if (cur.garment !== 'skirt') { put('garment', 'skirt'); put('easeWaist', 2); put('easeHip', 4); done.push('改做半截裙'); }
     } else if ((cur.garment === 'skirt' || cur.garment === 'trousers') && Z(TOP_WORDS).test(src)) {
       skirtMode = false; trouserMode = false;
       put('garment', 'top'); var fe = FIT_EASE[c.fit] || FIT_EASE.fitted; Object.keys(fe).forEach(function (k) { put(k, fe[k]); });

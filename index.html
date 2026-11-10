@@ -115,6 +115,28 @@
           </select>
           <small>連身裙只用拉鏈</small></label>
         <label class="only-skirt only-trousers">腰頭闊 <input type="number" name="bandW" step="0.5" min="2" max="8" value="3"> <span>cm</span></label>
+        <details class="only-skirt skblock">
+          <summary>裙原型設定（打版數值）</summary>
+          <p class="hint">預設跟小紅書「裙子原型打版」教學。臀圍鬆量用 ④「臀圍＋」（預設 4，即每份 H/4＋1）；腰圍鬆量用「腰圍＋」（預設 2，即每份 W/4＋0.5）。腰臀差分三份：兩道省，一份入側縫。</p>
+          <label>前後片差 <input type="number" name="skFB" step="0.05" min="0" max="3" value="0.5"> <span>cm</span>
+            <small>前片每份加、後片每份減</small></label>
+          <label>側縫起翹 <input type="number" name="skRaise" step="0.05" min="0" max="3" value="1"> <span>cm</span></label>
+          <label>後中落 <input type="number" name="skCbDrop" step="0.05" min="0" max="3" value="0.5"> <span>cm</span></label>
+          <label>前第一道省位 <input type="number" name="skDF1" step="0.05" min="3" max="20" value="8.7"> <span>cm</span>
+            <small>省中心距前中</small></label>
+          <label>前省長 <input type="number" name="skDFLen" step="0.05" min="4" max="20" value="9"> <span>cm</span>
+            <small>兩道省一樣長</small></label>
+          <label>後第一道省位 <input type="number" name="skDB1" step="0.05" min="3" max="20" value="8.85"> <span>cm</span>
+            <small>省中心距後中</small></label>
+          <label>後第一道省長 <input type="number" name="skDB1Len" step="0.05" min="4" max="20" value="12"> <span>cm</span></label>
+          <label>後第二道省長 <input type="number" name="skDB2Len" step="0.05" min="4" max="20" value="10.5"> <span>cm</span></label>
+          <label>省尖偏移 <input type="number" name="skApex" step="0.05" min="0" max="3" value="0.5"> <span>cm</span>
+            <small>第一道省尖向側縫偏；第二道省喺第一道省同側縫中間</small></label>
+          <label>腰頭鬆量 <input type="number" name="skBandEase" step="0.05" min="0" max="6" value="1"> <span>cm</span>
+            <small>腰頭長 = 腰圍 + 呢個數</small></label>
+          <label>腰頭搭門 <input type="number" name="skOver" step="0.05" min="0" max="10" value="3"> <span>cm</span></label>
+        </details>
+
         <label class="only-top only-dress">領口
           <select name="neckline">
             <option value="round">圓領</option>
