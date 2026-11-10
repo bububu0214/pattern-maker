@@ -321,8 +321,16 @@
         }
         centerEdge = bezEdge('center', cList);
       }
-      hemPts.push(P(cbIn > 0 ? cHem.x : 0, yHc));
-      if (ext) hemPts.push(P(cx, yHc));
+      var vestTip = null;
+      if (isFront && st.hemShape === 'vest' && !hemDartFeet.length) {
+        // 背心尖角：下擺由側縫斜落前中（門襟邊）嘅尖角
+        vestTip = P(cx, yHc + clamp(st.vestPoint == null ? 5 : st.vestPoint, 0, 15));
+        hemPts = [sideHem, vestTip];
+        centerEdge = { name: 'center', pts: [vestTip, P(cx, C.y)] };
+      } else {
+        hemPts.push(P(cbIn > 0 ? cHem.x : 0, yHc));
+        if (ext) hemPts.push(P(cx, yHc));
+      }
       var nType = st.neckline;
       if (!isFront && (nType === 'v' || nType === 'square')) nType = 'round';
       var edges = [
@@ -368,9 +376,9 @@
         notches: notches, grain: [P(gx, Math.min(yB - 6, gy1 - 4)), P(gx, gy1)],
         foldZh: (isFront ? '前中' : '後中') + '對摺線', foldEn: (isFront ? 'CF' : 'CB') + ' PLACE ON FOLD',
         label: { p: P(w * 0.5, yB - 7.5) },
-        cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), P(cx, yHc)],
+        cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), vestTip || P(cx, yHc)],
         waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW, saEdge: { hem: st.hemSa },
-        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w, G: armMid, L: L }
+        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w, G: armMid, L: L, vestTip: vestTip, sideHem: sideHem }
       };
       pc.dims = [
         { kind: 'dim', a: pc.center[0], b: pc.center[1], side: 'left', zh: (isFront ? '前中長 ' : '後中長 ') + f1(yHc - C.y), en: (isFront ? 'CF ' : 'CB ') + f1(yHc - C.y) },
@@ -727,6 +735,28 @@
   }
   var st0 = {};
 
+  /* ---------- 裡布：照衣身（同袖）複製，標明用裡布裁 ---------- */
+  function liningPieces(st, body, sl, warnings) {
+    var hasFacing = st.opening && (st.facing || st.collar === 'notched');
+    var src = body.slice();
+    if (sl) src.push(sl);
+    var out = src.map(function (pc) {
+      var c = JSON.parse(JSON.stringify(pc));
+      delete c._;
+      c.key = pc.key + 'Lining';
+      c.zh = pc.zh + '（裡布）';
+      c.en = pc.en + ' LINING';
+      c.marks = (c.marks || []).filter(function (mk) { return mk.type !== 'button' && mk.type !== 'buttonhole'; });
+      c.small = true;
+      var n = c.fold ? '裁 1 片（對摺）' : '裁 2 片（左右對稱）';
+      c.cutZh = '裡布' + n + (hasFacing && /^front/.test(pc.key) ? '，沿貼邊線剪走貼邊位再加 1 cm 縫份' : '');
+      c.cutEn = 'LINING ' + (c.fold ? 'CUT 1 ON FOLD' : 'CUT 2');
+      return c;
+    });
+    warnings.push('裡布：照面布紙樣裁，下擺同夾圈車埋（袋口翻出）；有前貼邊嘅，前片裡布要剪走貼邊位。');
+    return out;
+  }
+
   /* ---------- 彼得潘圓領 ---------- */
   // 傳統做法：前後片喺側頸點對齊，肩點重疊 2 cm，沿領口描出領底線，再向外畫領闊
   function collar(st, back, front, warnings) {
@@ -801,13 +831,18 @@
     var Q = P(fw, yJ);
     var inner = [[Ps, G.add(Ps, G.mul(perp, (yJ - Ps.y) * 0.5)), P(fw, yJ - (yJ - Ps.y) * 0.45), Q]];
     var neck = front.edges[0];
+    var Fb = P(fw, yHc);
+    if (d.vestTip) {                                   // 背心尖角：貼邊下擺跟斜線
+      var sh = d.sideHem, tp = d.vestTip;
+      Fb = P(fw, sh.y + (tp.y - sh.y) * (sh.x - fw) / (sh.x - tp.x));
+    }
     var edges = [
       neck.bez ? bezEdge('neck', neck.bez) : { name: 'neck', pts: neck.pts.slice() },
       { name: 'shoulder', pts: [S, Ps] },
       bezEdge('inner', inner),
-      { name: 'innerLine', pts: [Q, P(fw, yHc)] },
-      { name: 'hem', pts: [P(fw, yHc), P(0, yHc), P(-ext, yHc)] },
-      { name: 'center', pts: [P(-ext, yHc), P(-ext, C.y)] },
+      { name: 'innerLine', pts: [Q, Fb] },
+      { name: 'hem', pts: d.vestTip ? [Fb, d.vestTip] : [Fb, P(0, yHc), P(-ext, yHc)] },
+      { name: 'center', pts: [d.vestTip || P(-ext, yHc), P(-ext, C.y)] },
       { name: 'extTop', pts: [P(-ext, C.y), C] }
     ];
     var pc = {
@@ -1042,6 +1077,7 @@
     pieces = body.concat(sl ? [sl] : []);
     extras = extras.concat(rufflePieces(st, body, sl, warnings));
     pieces = pieces.concat(extras);
+    if (st.lining) pieces = pieces.concat(liningPieces(st, body, sl, warnings));
     return { back: bod.back, front: bod.front, sleeve: sl, pieces: pieces, info: info, warnings: warnings, style: st };
   }
 

@@ -31,6 +31,11 @@
     trousers: svg(p('M12 6 L28 6 L30 34 L22 34 L20 15 L18 34 L10 34 Z') + p('M12 9 L28 9')),
     dress: svg(p('M15 5 L13 6 L13 16 L8 35 L32 35 L27 16 L27 6 L25 5 Q20 10 15 5') + p('M13 16 L27 16')),
     jacket: svg(tee('M14 6 L17 13 L20 25 L23 13 L26 6', 34, 'long') + p('M17 13 L15 14 M23 13 L25 14')),
+    hem: function (k) {
+      var h = { straight: p('M10 6 L10 32 L30 32 L30 6'), aline: p('M11 6 L7 32 L33 32 L29 6'),
+        vest: p('M10 6 L10 28 L20 34 L30 28 L30 6') + p('M20 14 L20 34') }[k];
+      return svg(h + p('M10 6 L16 6 Q20 10 24 6 L30 6'));
+    },
     neck: function (k) { return svg(p('M4 12 L14 6') + p('M26 6 L36 12') + p('M8 11 L8 34 M32 11 L32 34') + p(NECK[k])); },
     depth: function (d) { return svg(p('M4 12 L14 6') + p('M26 6 L36 12') + p('M8 11 L8 34 M32 11 L32 34') + p('M14 6 Q20 ' + (8 + d) + ' 26 6')); },
     collar: function (k) {
@@ -68,7 +73,8 @@
         pocket: p('M22 16 L27 16 L27 22 L22 22 Z'),
         yoke: p('M12 12 L28 12'),
         princess: p('M16 7 Q17 20 16 33 M24 7 Q23 20 24 33'),
-        ruffle: p('M11 33 Q13 37 15 33 Q17 37 19 33 Q21 37 23 33 Q25 37 27 33 Q29 37 31 33')
+        ruffle: p('M11 33 Q13 37 15 33 Q17 37 19 33 Q21 37 23 33 Q25 37 27 33 Q29 37 31 33'),
+        lining: '<path d="M13 14 L27 14 L27 31 L13 31 Z" fill="#444" stroke="none" opacity=".35"/>'
       }[k];
       return svg(tee() + x);
     },
@@ -187,6 +193,14 @@
           return [o[0], ICON.length(o[2]), function () { set('lengthPreset', o[1], true); }, lp === o[1]];
         }) });
       }
+      if (g !== 'dress') {
+        var hs = val('hemShape');
+        out.push({ title: '下擺', items: [
+          ['直腳', ICON.hem('straight'), function () { set('hemShape', 'straight', true); }, hs === 'straight'],
+          ['A 字', ICON.hem('aline'), function () { set('hemShape', 'aline', true); }, hs === 'aline'],
+          ['背心尖角', ICON.hem('vest'), function () { set('hemShape', 'vest', true); if (!val('opening')) set('opening', true, true); }, hs === 'vest']
+        ] });
+      }
       var fit = val('fit');
       out.push({ title: '鬆緊度', items: [['修身', 'fitted'], ['合身', 'regular'], ['寬鬆', 'loose']].concat(g === 'jacket' ? [['外套', 'jacket']] : []).map(function (o) {
         return [o[0], ICON.fit(o[1] === 'jacket' ? 'regular' : o[1]), function () { set('fit', o[1], true); }, fit === o[1]];
@@ -200,7 +214,8 @@
         ['胸前袋', ICON.detail('pocket'), function () { set('pocket', val('pocket') === 'none' ? 'left' : 'none'); }, val('pocket') !== 'none'],
         ['後育克', ICON.detail('yoke'), function () { set('yoke', val('yoke') === 'none' ? 'back' : 'none', true); }, val('yoke') !== 'none'],
         ['公主線', ICON.detail('princess'), function () { set('princess', !val('princess')); }, val('princess')],
-        ['荷葉邊', ICON.detail('ruffle'), function () { set('ruffle', val('ruffle') === 'none' ? 'hem' : 'none', true); }, val('ruffle') !== 'none']
+        ['荷葉邊', ICON.detail('ruffle'), function () { set('ruffle', val('ruffle') === 'none' ? 'hem' : 'none', true); }, val('ruffle') !== 'none'],
+        ['裡布', ICON.detail('lining'), function () { set('lining', !val('lining')); }, val('lining')]
       ] });
     }
     if (g === 'dress') {

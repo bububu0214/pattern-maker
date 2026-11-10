@@ -46,7 +46,7 @@
     ['袋蓋', '袋蓋'], ['側袋|插袋|褲袋|斜袋|後袋|貼袋褲|工裝', '褲袋／側袋'], ['蝴蝶結', '蝴蝶結'], ['流蘇|毛邊', '流蘇／毛邊'],
     ['水手領|海軍領|青果領|圍巾領|蝴蝶結領|荷葉領|樽領|高領', '呢款衣領'], ['連帽|帽', '帽'], ['雙排扣|雙排鈕', '雙排扣'], ['兩片袖|二片袖', '兩片袖'],
     ['拉鏈|zip', '拉鏈（可以用前中開胸加鈕代替）', 'top'], ['開叉|開衩|叉位', '下擺開叉', 'top'], ['腰帶|腰頭', '腰帶', 'top'],
-    ['蕾絲|花邊', '花邊'], ['魚尾', '魚尾裙'], ['層層|蛋糕裙|分層', '分層裙'], ['縮骨|打揽|smock', '縮骨（smocking）'], ['褲耳|皮帶耳', '褲耳'], ['裡布|裏布|內裡', '裡布']
+    ['蕾絲|花邊', '花邊'], ['魚尾', '魚尾裙'], ['層層|蛋糕裙|分層', '分層裙'], ['縮骨|打揽|smock', '縮骨（smocking）'], ['褲耳|皮帶耳', '褲耳']
   ];
 
   function parseRequest(text, cur) {
@@ -125,6 +125,11 @@
     each('(?:' + NEG + '\\s*袖(?!頭|長|口)|無袖|冇袖|背心|sleeveless)', function () {
       neg.sleeve = true; put('sleeve', 'none'); put('sleeveLen', 0); done.push('無袖');
     });
+    each('(?:馬甲|西裝背心|尖角|尖腳|vest\\s*point)', function () {
+      put('hemShape', 'vest'); if (!neg.opening) put('opening', true); done.push('背心尖角下擺');
+    });
+    each(NEG + '\\s*裡布', function () { neg.lining = true; put('lining', false); done.push('唔要裡布'); });
+    each('(?:加|要|有|連|全)?\\s*裡布|lining', function () { if (!neg.lining) { put('lining', true); done.push('加裡布'); } });
 
     /* ---- 領口 ---- */
     each('V\\s*字?\\s*領|v\\s*neck', function () { put('neckline', 'v'); if (c.neckDropF < 6) put('neckDropF', 6); done.push('V 領'); });
@@ -171,7 +176,7 @@
         put('collar', 'notched'); put('collarW', 7.5); roundNeck(); put('opening', true); put('ext', Math.max(c.ext || 2, 2.5)); done.push('西裝領（平駁頭）');
       });
     }
-    each('外套|西裝|褸|夾克|blazer|jacket|coat', function () {
+    each('外套|西裝(?!背心|領)|褸|夾克|blazer|jacket|coat', function () {
       put('garment', 'jacket'); setFit('jacket'); put('easeArmhole', 4); put('easeNeck', 1);
       if (!c.collar || c.collar === 'none') { put('collar', 'notched'); put('collarW', 7.5); put('neckline', 'round'); put('neckDropF', 0); put('neckWiden', 0); }
       put('opening', true); put('ext', Math.max(c.ext || 2, 2.5));

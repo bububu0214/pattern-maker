@@ -12,7 +12,7 @@
   var NUM = ['bust', 'bustF', 'bustB', 'waist', 'hip', 'shoulder', 'backLen', 'frontLen', 'neck', 'armhole',
     'waistToHip', 'armLen', 'upperArm', 'wrist',
     'easeBust', 'easeWaist', 'easeHip', 'easeNeck', 'easeArmhole', 'sa',
-    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext', 'collarW', 'cuffH',
+    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'vestPoint', 'sleeveLen', 'ext', 'collarW', 'cuffH',
     'skirtLen', 'skirtFlare', 'slitLen', 'bandW', 'hemSa',
     'yokeDepthB', 'yokeDepthF', 'yokeFull', 'sleevePuff', 'sleeveGather', 'ruffleW', 'ruffleRatio', 'skirtRatio',
     'trouserLen', 'crotchDepth', 'outseam',
@@ -20,7 +20,7 @@
   var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit', 'collar', 'pocket', 'cuff',
     'garment', 'skirtShape', 'skirtLenPreset', 'slit', 'zip', 'yoke', 'yokeFullType', 'ruffle',
     'trouserShape', 'trouserLenPreset', 'trouserWaist', 'dressType'];
-  var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing', 'princess'];
+  var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing', 'princess', 'lining'];
   var defaults = readForm();
 
   /* ---------- 預設值對照 ---------- */
@@ -101,6 +101,7 @@
     form.elements.cuff.disabled = !(v.sleeve === 'long' || v.sleeve === 'elbow');
     form.elements.cuffH.disabled = form.elements.cuff.disabled || v.cuff === 'none';
     form.elements.skirtFlare.disabled = v.skirtShape !== 'aline';
+    form.elements.vestPoint.disabled = v.hemShape !== 'vest';
     form.elements.skirtRatio.disabled = v.skirtShape !== 'gathered';
     form.elements.yokeDepthB.disabled = !(v.yoke === 'back' || v.yoke === 'both');
     form.elements.yokeDepthF.disabled = !(v.yoke === 'front' || v.yoke === 'both');
@@ -220,7 +221,7 @@
       yoke: v.yoke, yokeFullness: v.yokeFull > 0 ? v.yokeFullType : 'none', princess: v.princess,
       puffSleeve: v.sleevePuff > 0, sleeveHemGather: v.sleeveGather > 0, ruffle: v.ruffle,
       neckline: v.neckline, neckWiden: v.neckWiden || 0, neckDropF: v.neckDropF || 0, neckDropB: v.neckDropB || 0,
-      hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0,
+      hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0, vestPoint: isNaN(v.vestPoint) ? 5 : v.vestPoint, lining: v.lining,
       sleeve: v.sleeve, sleeveLen: v.sleeveLen || 0, fit: v.fit,
       opening: v.opening, ext: v.ext || 2, cfFold: v.cfFold, cbFold: v.cbFold,
       facing: v.facing, collar: v.collar, collarW: v.collarW || 7, pocket: v.pocket,
@@ -621,7 +622,7 @@
     'Reply with ONLY a JSON object, no other text, exactly in this shape:',
     '{"garment": "top", "dressType": "waist", "isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
     ' "frontNeckDepth": "high|medium|low|deep", "backNeckDepth": "high|medium|low",',
-    ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline", "sleeve": "none|short|elbow|long",',
+    ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline|vest", "lining": false, "sleeve": "none|short|elbow|long",',
     ' "fit": "fitted|regular|loose|jacket", "frontOpening": false, "collar": "none|peterpan|mandarin|shirt|convertible|notched|other",',
     ' "pocket": "none|left|right|both", "cuff": "none|band",',
     ' "yoke": "none|back|front|both", "yokeFullness": "none|gather|pleat", "princess": false, "puffSleeve": false, "sleeveHemGather": false,',
@@ -633,6 +634,7 @@
     '- yoke = a separate shoulder/upper-back panel (seam across the upper back or front); yokeFullness = gathers or a centre box pleat below the yoke.',
     '- princess = vertical princess seams over the bust/shoulder blade instead of darts; puffSleeve = gathered, puffed sleeve cap; sleeveHemGather = sleeve gathered at the hem or into the cuff (bishop/lantern sleeve).',
     '- ruffle = a gathered ruffle strip sewn to the hem, sleeve hem or neckline.',
+    'hem: vest = waistcoat style, the front hem slopes down to a point at each front edge. lining = true if the garment is visibly fully lined.',
     'Skirt definitions: straight = straight from hip to hem; pencil = narrows towards the hem; aline = flares out; gathered = gathered at the waist (dirndl); pleated = knife pleats all round; halfcircle / circle = half or full circle skirt. skirtLength: mini = mid-thigh or shorter, knee = around the knee, midi = mid-calf, long = ankle.',
     'Trouser definitions: straight = straight leg, slim = narrow/tapered, wide = wide or flared leg; shorts = above the knee, capri = mid-calf, ankle = just above the ankle (9/10 length), full = to the floor/heel; trouserWaist: zip = front fly with waistband, side = side zip with waistband, elastic = elastic/drawstring waist.',
     'slit = a vent/opening at the hem (back, front centre or side seam). zip = waist closure: back = back zip with waistband, side = side zip with waistband, halfElastic = flat front waistband with elastic back (no zip), elastic = fully elastic waist (no zip). Default back. The skirt always has a waistband and waist darts.',
@@ -654,7 +656,7 @@
     'for trousers straight/slim/wide legs, shorts to full length, front fly or side zip with waistband, or elastic waist, waist darts.',
     'summary: one short sentence in Traditional Chinese (Cantonese, Hong Kong style) describing the garment.',
     'fabricTip: in Traditional Chinese (Cantonese), ONLY if the garment mixes fabrics or colours by area: which pattern pieces to cut in which fabric (pieces: 前片, 後片, 袖, 衣領, 袖頭, 貼袋), e.g. "袖同袖頭用牛仔布，前後片用印花布". Otherwise "". Never mention prints or colours otherwise; they do not change the pattern.',
-    'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, asymmetry, wrap fronts, pocket flaps, side pockets, trouser pockets, pleats at the trouser waist, cargo pockets, jumpsuits, smocking, tiers, mermaid/fishtail, skirt yokes, belt loops, lining). Do not list anything it can make, nor fabric/print/colour. "" if none.',
+    'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, asymmetry, wrap fronts, pocket flaps, side pockets, trouser pockets, pleats at the trouser waist, cargo pockets, jumpsuits, smocking, tiers, mermaid/fishtail, skirt yokes, belt loops). Do not list anything it can make, nor fabric/print/colour. "" if none.',
     'fabricTip pieces for trousers: 前褲片, 後褲片, 腰頭. fabricTip pieces for skirts: 前裙片, 後裙片, 腰頭. Extra top pieces when used: 後育克, 前育克, 前中片, 前側片, 後中片, 後側片, 荷葉邊.',
     'If the image shows neither a top nor a skirt (e.g. trousers, not a garment), set "isTop": false and "garment": "none", and explain in "summary".',
     'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "totalLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null, "skirtLen": null, "skirtFlare": null, "slitLen": null, "bandW": null, "yokeDepthB": null, "ruffleW": null, "trouserLen": null}',
@@ -699,7 +701,7 @@
     length: { cropped: '短身', waist: '及腰', hip: '及臀', tunic: '長身', dress: '連身裙長' },
     sleeve: { none: '無袖', short: '短袖', elbow: '七分袖', long: '長袖' },
     fit: { fitted: '修身', regular: '合身', loose: '寬鬆', jacket: '外套' },
-    hem: { straight: '直腳', aline: 'A 字' }
+    hem: { straight: '直腳', aline: 'A 字', vest: '背心尖角' }
   };
   function pick(val, allowed, dflt) { return allowed.indexOf(val) >= 0 ? val : dflt; }
 
@@ -777,7 +779,8 @@
     var sleeve = pick(r.sleeve, ['none', 'short', 'elbow', 'long'], 'none');
     var fit = pick(r.fit, ['fitted', 'regular', 'loose', 'jacket'], 'fitted');
     if (fit === 'jacket' && !isDress) setVal('garment', 'jacket');
-    var hem = pick(r.hem, ['straight', 'aline'], 'straight');
+    var hem = pick(r.hem, ['straight', 'aline', 'vest'], 'straight');
+    form.elements.lining.checked = r.lining === true;
 
     setVal('neckline', neckline);
     setVal('neckWiden', nw); setVal('neckDropF', fd); setVal('neckDropB', bd);

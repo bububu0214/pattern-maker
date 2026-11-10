@@ -166,7 +166,10 @@
           <select name="hemShape">
             <option value="straight">直腳</option>
             <option value="aline">A 字</option>
+            <option value="vest">背心尖角（前片）</option>
           </select></label>
+        <label class="only-top">尖角長 <input type="number" name="vestPoint" step="0.5" min="0" max="15" value="5"> <span>cm</span>
+          <small>前中尖角比側縫下擺長幾多</small></label>
         <label class="only-top">A 字放出 <input type="number" name="flare" step="0.5" min="0" max="30" value="0"> <span>cm</span>
           <small>每條側縫喺下擺放出</small></label>
         <label class="only-top only-dress">袖
@@ -188,6 +191,7 @@
         <label class="chk only-top only-dress"><input type="checkbox" name="opening"> 前中開胸（加門襟同鈕位）</label>
         <label class="only-top only-dress">門襟寬 <input type="number" name="ext" step="0.5" min="0.5" max="6" value="2"> <span>cm</span></label>
         <label class="chk only-top only-dress"><input type="checkbox" name="facing" checked> 加前貼邊（開胸用）</label>
+        <label class="chk only-top"><input type="checkbox" name="lining"> 裡布（衣身、袖各出一套裡布紙樣）</label>
         <label class="only-top only-dress">衣領
           <select name="collar">
             <option value="none">無</option>
