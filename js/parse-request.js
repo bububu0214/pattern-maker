@@ -147,11 +147,11 @@
       put('neckWiden', round(Math.max(0, (c.neckWiden || 0) - 1.5))); done.push('領口收細（加闊 ' + c.neckWiden + ' cm）');
     });
     // 領深
-    each('後領口?\\s*(?:開|挖|再)?\\s*(?:深|低)' + MORE + '?\\s*(?:' + NUM + ')?', function (m) {
+    each('後領口?\\s*(?:開|挖|再|加)?\\s*(?:深|低)' + MORE + '?\\s*(?:' + NUM + ')?', function (m) {
       var n = num(m[1]);
       put('neckDropB', round(n != null ? n : (c.neckDropB || 0) + 2)); done.push('後領加深 ' + c.neckDropB + ' cm');
     });
-    each('(?<!後)(?:前)?領口?\\s*(?:開|挖|再)?\\s*(?:深|低)' + MORE + '?\\s*(?:' + NUM + ')?', function (m) {
+    each('(?<!後)(?:前)?領口?\\s*(?:開|挖|再|加)?\\s*(?:深|低)' + MORE + '?\\s*(?:' + NUM + ')?', function (m) {
       var n = num(m[1]);
       put('neckDropF', round(n != null ? n : (c.neckDropF || 0) + 3)); done.push('前領加深 ' + c.neckDropF + ' cm');
     });
