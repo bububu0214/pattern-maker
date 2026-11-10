@@ -15,6 +15,14 @@
 Repo 嘅 Settings → Pages → Source 揀「Deploy from a branch」→ Branch 揀呢個 branch、資料夾 `/ (root)` → Save。
 等一兩分鐘就可以用 `https://<你嘅帳號>.github.io/pattern-maker/` 打開。
 
+## 擺上手機主畫面（網頁 App）
+
+開咗 GitHub Pages 之後：
+- **iPhone**：用 Safari 打開網址 → 撳分享掣 →「加至主畫面」
+- **Android**：用 Chrome 打開 → 選單 →「加到主畫面」／「安裝應用程式」
+
+之後主畫面有「紙樣」圖示，全螢幕打開，唔使登入；開過一次之後冇網都用到（AI 睇相除外）。
+
 ## 用法
 
 1. **上傳款式圖（可選）**：揀衫嘅設計圖或者相，可以加幾張（前面、後面、側面、細節），每張揀返係邊個角度

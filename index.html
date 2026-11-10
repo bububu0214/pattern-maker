@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>紙樣生成器 — 女裝衫、裙、褲、連身裙、外套</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#8a4b2a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="紙樣">
 </head>
 <body>
   <header>
@@ -305,5 +311,11 @@
   <script src="js/export-seamly.js"></script>
   <script src="js/parse-request.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // 網頁 App：有 https 網址（例如 GitHub Pages）先啟用離線功能
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !window.claude) {
+      try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) { /* 唔支援 */ }
+    }
+  </script>
 </body>
 </html>
