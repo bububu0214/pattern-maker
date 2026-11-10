@@ -12,7 +12,7 @@
   var NUM = ['bust', 'bustF', 'bustB', 'waist', 'hip', 'shoulder', 'backLen', 'frontLen', 'neck', 'armhole',
     'waistToHip', 'armLen', 'upperArm', 'wrist',
     'easeBust', 'easeWaist', 'easeHip', 'easeNeck', 'easeArmhole', 'sa',
-    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'vestPoint', 'sleeveLen', 'ext', 'collarW', 'cuffH',
+    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'vestPoint', 'vestOffset', 'sleeveLen', 'ext', 'collarW', 'cuffH',
     'skirtLen', 'skirtFlare', 'slitLen', 'bandW', 'hemSa',
     'yokeDepthB', 'yokeDepthF', 'yokeFull', 'sleevePuff', 'sleeveGather', 'ruffleW', 'ruffleRatio', 'skirtRatio',
     'trouserLen', 'crotchDepth', 'outseam',
@@ -102,6 +102,7 @@
     form.elements.cuffH.disabled = form.elements.cuff.disabled || v.cuff === 'none';
     form.elements.skirtFlare.disabled = v.skirtShape !== 'aline';
     form.elements.vestPoint.disabled = v.hemShape !== 'vest';
+    form.elements.vestOffset.disabled = v.hemShape !== 'vest';
     form.elements.skirtRatio.disabled = v.skirtShape !== 'gathered';
     form.elements.yokeDepthB.disabled = !(v.yoke === 'back' || v.yoke === 'both');
     form.elements.yokeDepthF.disabled = !(v.yoke === 'front' || v.yoke === 'both');
@@ -221,7 +222,7 @@
       yoke: v.yoke, yokeFullness: v.yokeFull > 0 ? v.yokeFullType : 'none', princess: v.princess,
       puffSleeve: v.sleevePuff > 0, sleeveHemGather: v.sleeveGather > 0, ruffle: v.ruffle,
       neckline: v.neckline, neckWiden: v.neckWiden || 0, neckDropF: v.neckDropF || 0, neckDropB: v.neckDropB || 0,
-      hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0, vestPoint: isNaN(v.vestPoint) ? 5 : v.vestPoint, lining: v.lining,
+      hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0, vestPoint: isNaN(v.vestPoint) ? 5 : v.vestPoint, vestOffset: isNaN(v.vestOffset) ? 2 : v.vestOffset, lining: v.lining,
       sleeve: v.sleeve, sleeveLen: v.sleeveLen || 0, fit: v.fit,
       opening: v.opening, ext: v.ext || 2, cfFold: v.cfFold, cbFold: v.cbFold,
       facing: v.facing, collar: v.collar, collarW: v.collarW || 7, pocket: v.pocket,

@@ -321,12 +321,16 @@
         }
         centerEdge = bezEdge('center', cList);
       }
-      var vestTip = null;
+      var vestTip = null, vestCut = null;
       if (isFront && st.hemShape === 'vest' && !hemDartFeet.length) {
         // 背心尖角：下擺由側縫斜落前中（門襟邊）嘅尖角
-        vestTip = P(cx, yHc + clamp(st.vestPoint == null ? 5 : st.vestPoint, 0, 15));
+        // 尖角離前中向側縫入少少；門襟邊由最低粒鈕下面斜出去尖角，兩邊前片之間有倒 V 開口
+        var tipX = clamp(st.vestOffset == null ? 2 : st.vestOffset, -ext, sideHem.x - 6);
+        vestTip = P(tipX, yHc + clamp(st.vestPoint == null ? 5 : st.vestPoint, 0, 15));
+        var lastBtn = yHc - Math.min(8, Math.max(2, L + 4));
+        vestCut = P(cx, clamp(lastBtn + 4, C.y + 6, vestTip.y - 1.5));
         hemPts = [sideHem, vestTip];
-        centerEdge = { name: 'center', pts: [vestTip, P(cx, C.y)] };
+        centerEdge = { name: 'center', pts: tipX > cx + 0.1 ? [vestTip, vestCut, P(cx, C.y)] : [vestTip, P(cx, C.y)] };
       } else {
         hemPts.push(P(cbIn > 0 ? cHem.x : 0, yHc));
         if (ext) hemPts.push(P(cx, yHc));
@@ -378,7 +382,7 @@
         label: { p: P(w * 0.5, yB - 7.5) },
         cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), vestTip || P(cx, yHc)],
         waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW, saEdge: { hem: st.hemSa },
-        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w, G: armMid, L: L, vestTip: vestTip, sideHem: sideHem }
+        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w, G: armMid, L: L, vestTip: vestTip, vestCut: vestCut, sideHem: sideHem }
       };
       pc.dims = [
         { kind: 'dim', a: pc.center[0], b: pc.center[1], side: 'left', zh: (isFront ? '前中長 ' : '後中長 ') + f1(yHc - C.y), en: (isFront ? 'CF ' : 'CB ') + f1(yHc - C.y) },
@@ -842,7 +846,7 @@
       bezEdge('inner', inner),
       { name: 'innerLine', pts: [Q, Fb] },
       { name: 'hem', pts: d.vestTip ? [Fb, d.vestTip] : [Fb, P(0, yHc), P(-ext, yHc)] },
-      { name: 'center', pts: [d.vestTip || P(-ext, yHc), P(-ext, C.y)] },
+      { name: 'center', pts: d.vestTip ? (d.vestTip.x > -ext + 0.1 ? [d.vestTip, d.vestCut, P(-ext, C.y)] : [d.vestTip, P(-ext, C.y)]) : [P(-ext, yHc), P(-ext, C.y)] },
       { name: 'extTop', pts: [P(-ext, C.y), C] }
     ];
     var pc = {
