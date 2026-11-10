@@ -388,3 +388,43 @@ details summary { cursor: pointer; font-size: 14px; color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- real photos ---------- */
+.pic img, .thumb img, .hero-photo img, .zone-img, .lookbook img, .lookbook video, .swatch img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.card .pic, .preview .pic, .pd .pic { padding: 0; overflow: hidden; }
+.card .pic img { transition: transform .8s ease; }
+.card:hover .pic img { transform: scale(1.03); }
+.hero-photo { margin: 0; }
+.hero-photo img { aspect-ratio: 4 / 5; border-radius: var(--radius); }
+.zone-img { aspect-ratio: 16 / 10; border-radius: 2px; margin-bottom: 6px; object-position: center 30%; }
+.style-opt .thumb { padding: 0; overflow: hidden; aspect-ratio: 4 / 5; }
+.item .thumb { padding: 0; overflow: hidden; aspect-ratio: 4 / 5; }
+.swatch { overflow: hidden; }
+.preview .pic { aspect-ratio: 4 / 5; border-radius: 2px; }
+.preview .pic img { transition: opacity .4s; }
+.pd .pic { aspect-ratio: 4 / 5; }
+@media (max-width: 860px) {
+  .preview .pic { width: 120px; aspect-ratio: 4 / 5; }
+}
+@media (max-width: 700px) {
+  .pd .pic { aspect-ratio: 1; }
+  .pd .pic img { object-fit: contain; background: var(--card); }
+}
+
+.lookbook { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 48px; align-items: center; }
+.lookbook-video { border-radius: var(--radius); overflow: hidden; aspect-ratio: 9 / 16; background: var(--paper-2); }
+.lookbook-text { display: grid; gap: 16px; }
+.lookbook-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lookbook-thumbs img { aspect-ratio: 4 / 5; border-radius: 2px; }
+@media (max-width: 760px) {
+  .lookbook { grid-template-columns: 1fr; gap: 24px; }
+  .lookbook-video { max-width: 320px; width: 100%; margin-inline: auto; }
+}
+@media (max-width: 560px) {
+  .grid { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
+  .card h3 { font-size: 15px; }
+  .card .meta { flex-direction: column; gap: 0; }
+  .card .price { font-size: 14px; }
+}

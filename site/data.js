@@ -1,70 +1,79 @@
 // All product data lives here. In the real shop this comes from Shopify.
+// Prices, lead times and stock are placeholders — change them to the real ones.
 
 const FABRICS = {
-  "linen-natural": { name: "原色亞麻", origin: "立陶宛", weight: "中厚", season: "春夏", feel: "愈洗愈軟", extra: 0, color: "#cbbca1", tex: "linen" },
-  "linen-ink":     { name: "墨黑亞麻", origin: "立陶宛", weight: "中厚", season: "春夏", feel: "挺身、透氣", extra: 0, color: "#34302c", tex: "linen" },
-  "rust-cotton":   { name: "鐵鏽棉麻", origin: "日本", weight: "中", season: "四季", feel: "柔軟、微皺", extra: 120, color: "#9c4a2e", tex: "plain" },
-  "indigo":        { name: "岡山靛染棉", origin: "日本岡山", weight: "中", season: "四季", feel: "手工靛染，會慢慢褪色", extra: 220, color: "#2f3d58", tex: "twill" },
-  "silk-cotton":   { name: "米白絲棉", origin: "意大利", weight: "薄", season: "夏", feel: "有光澤、垂墜", extra: 260, color: "#ece3d2", tex: "plain" },
-  "moss-wool":     { name: "苔綠羊毛呢", origin: "英國", weight: "厚", season: "秋冬", feel: "人字紋，保暖", extra: 380, color: "#5e6b4e", tex: "herring" },
-  "stripe":        { name: "細條紋棉", origin: "日本", weight: "薄", season: "春夏", feel: "爽身", extra: 80, color: "#8b9bb0", tex: "stripe" },
+  snowcat: { name: "童話貓貓印花", desc: "深藍底，白雪公主貓貓故事印花，棉質", extra: 0, swatch: "img/sw-snowcat.jpg" },
+  embroid: { name: "藍花刺繡蕾絲", desc: "米白棉麻底，藍色花朵刺繡配菱形蕾絲", extra: 120, swatch: "img/sw-embroid.jpg" },
+  cats:    { name: "手繪貓咪印花", desc: "白底，紅藍手繪貓咪，棉質", extra: 0, swatch: "img/sw-cats.jpg" },
+  stripe:  { name: "粉藍條紋刺繡", desc: "粉藍細條紋，白色小花刺繡", extra: 80, swatch: "img/sw-stripe.jpg" },
+  floral:  { name: "啡底花草", desc: "朱古力啡底，粉紫小花葉印花", extra: 0, swatch: "img/sw-floral.jpg" },
+  denim:   { name: "流蘇菱格牛仔", desc: "藍白條紋牛仔布，手工剪出菱格流蘇", extra: 180, swatch: "img/sw-denim.jpg" },
+  plaid:   { name: "繽紛格仔斜紋", desc: "紫、綠、橙、藍格仔，斜紋布，有少少厚度", extra: 0, swatch: "img/sw-plaid.jpg" },
 };
 
 // Every measurement a style might ask for. min/max are used for the "looks wrong" hint.
 const MEASURES = {
   height:   { label: "身高", min: 140, max: 200, tip: "除鞋企直量", zone: "height" },
-  neck:     { label: "頸圍", min: 30, max: 50, tip: "喉核下方圍一圈，留一隻手指位", zone: "neck" },
-  shoulder: { label: "肩寬", min: 34, max: 56, tip: "由左肩骨量到右肩骨", zone: "shoulder" },
+  shoulder: { label: "肩寬", min: 32, max: 56, tip: "由左肩骨量到右肩骨", zone: "shoulder" },
   chest:    { label: "胸圍", min: 70, max: 140, tip: "經過胸口最闊位置，軟尺保持水平", zone: "chest" },
   waist:    { label: "腰圍", min: 55, max: 130, tip: "肚臍上方最窄位置", zone: "waist" },
   hip:      { label: "臀圍", min: 75, max: 145, tip: "臀部最闊位置", zone: "hip" },
-  sleeve:   { label: "袖長", min: 50, max: 70, tip: "由肩骨沿手臂量到手腕骨", zone: "sleeve" },
-  top_len:  { label: "衫長", min: 55, max: 90, tip: "由後頸骨量到想要嘅長度", zone: "length" },
-  pant_len: { label: "褲長", min: 80, max: 115, tip: "由腰量到腳眼", zone: "leg" },
-  dress_len:{ label: "裙長", min: 80, max: 140, tip: "由肩頂量到想要嘅長度", zone: "length" },
+  sleeve:   { label: "袖長", min: 45, max: 70, tip: "由肩骨沿手臂量到手腕骨", zone: "sleeve" },
+  top_len:  { label: "衫長", min: 40, max: 90, tip: "由後頸骨量到想要嘅長度", zone: "length" },
+  pant_len: { label: "褲長", min: 70, max: 115, tip: "由腰量到想要嘅長度", zone: "leg" },
 };
 
 // Section 1: styles the shop designs, customer picks fabric + enters size.
+// photos: one photo per fabric, so the preview changes when the customer picks a fabric.
 const CUSTOM_STYLES = [
   {
-    id: "band-shirt", name: "立領手縫襯衫", art: "shirt", base: 980, days: "21–28",
-    desc: "簡單立領，貝殼鈕，手縫鈕門。可以入褲或者散著。",
-    fabrics: ["linen-natural", "linen-ink", "indigo", "silk-cotton", "stripe"],
-    measures: ["height", "neck", "shoulder", "chest", "sleeve", "top_len"],
-  },
-  {
-    id: "wide-trousers", name: "麻質闊腳褲", art: "trousers", base: 880, days: "18–25",
-    desc: "高腰雙褶，褲腳闊而垂，行路有風。",
-    fabrics: ["linen-natural", "linen-ink", "rust-cotton", "indigo", "moss-wool"],
-    measures: ["height", "waist", "hip", "pant_len"],
-  },
-  {
-    id: "work-jacket", name: "工匠短褸", art: "jacket", base: 1680, days: "28–35",
-    desc: "參考舊式工作褸，三個貼袋，可以著好多年。",
-    fabrics: ["indigo", "linen-ink", "moss-wool", "rust-cotton"],
+    id: "collar-blouse", name: "小圓領拼布恤衫", base: 680, days: "21–28",
+    desc: "前幅用印花或刺繡布，袖用素色布拼接，袖口收褶。",
+    cover: "img/blouse-collage.jpg",
+    photos: { snowcat: "img/blouse-snowcat.jpg", embroid: "img/blouse-embroid.jpg", cats: "img/blouse-cats.jpg", stripe: "img/blouse-stripe.jpg", floral: "img/blouse-floral.jpg" },
+    note: "領型、口袋同袖嘅拼色會按布料配搭，以相片為準。",
     measures: ["height", "shoulder", "chest", "sleeve", "top_len"],
   },
   {
-    id: "long-dress", name: "無袖長裙", art: "dress", base: 1280, days: "21–28",
-    desc: "A 字剪裁，腰身微收，後背開衩。",
-    fabrics: ["linen-natural", "rust-cotton", "silk-cotton", "indigo", "stripe"],
-    measures: ["height", "chest", "waist", "hip", "dress_len"],
+    id: "v-vest", name: "V 領背心", base: 580, days: "18–25",
+    desc: "短身 V 領，三粒金屬鈕，內裡用黑色棉布。",
+    cover: "img/plaid-vest.jpg",
+    photos: { plaid: "img/plaid-vest.jpg", denim: "img/denim-vest.jpg" },
+    measures: ["height", "shoulder", "chest", "waist", "top_len"],
+  },
+  {
+    id: "straight-pants", name: "高腰直腳褲", base: 620, days: "18–25",
+    desc: "高腰，前中一粒鈕，褲腳微窄，九分長度。",
+    cover: "img/plaid-pants.jpg",
+    photos: { plaid: "img/plaid-pants.jpg", denim: "img/denim-pants.jpg" },
+    gallery: { plaid: ["img/plaid-pants-worn.jpg"] },
+    measures: ["height", "waist", "hip", "pant_len"],
+  },
+  {
+    id: "vest-set", name: "背心褲套裝", base: 1120, days: "25–32",
+    desc: "V 領背心配高腰直腳褲，同一款布，一套買平啲。",
+    cover: "img/plaid-set.jpg",
+    photos: { plaid: "img/plaid-set.jpg", denim: "img/denim-set.jpg" },
+    measures: ["height", "shoulder", "chest", "waist", "hip", "top_len", "pant_len"],
   },
 ];
 
 // Section 2: fixed ready-made styles with standard sizes.
 const READY = [
-  { id: "r-apron", name: "帆布工作圍裙", art: "apron", price: 520, fabric: "rust-cotton", cat: "雜貨", sizes: { F: 6 }, desc: "皮革吊帶，兩個大口袋。" },
-  { id: "r-shirt", name: "亞麻立領襯衫", art: "shirt", price: 860, fabric: "linen-natural", cat: "上衣", sizes: { S: 3, M: 0, L: 2 }, desc: "訂製款嘅標準尺碼版本。" },
-  { id: "r-skirt", name: "靛染半截裙", art: "skirt", price: 780, fabric: "indigo", cat: "下身", sizes: { S: 2, M: 4, L: 1 }, desc: "鬆緊腰頭，有側袋。" },
-  { id: "r-trousers", name: "墨黑闊腳褲", art: "trousers", price: 760, fabric: "linen-ink", cat: "下身", sizes: { S: 0, M: 3, L: 3 }, desc: "高腰，前褶，褲腳可以摺起。" },
-  { id: "r-jacket", name: "苔綠羊毛短褸", art: "jacket", price: 1580, fabric: "moss-wool", cat: "外套", sizes: { S: 1, M: 2, L: 0 }, desc: "人字紋羊毛呢，內裡用棉布。" },
-  { id: "r-dress", name: "條紋長裙", art: "dress", price: 1080, fabric: "stripe", cat: "上衣", sizes: { S: 2, M: 2, L: 2 }, desc: "夏天一件就夠。" },
+  { id: "r-lace", name: "波浪蕾絲背心上衣", price: 780, cat: "上衣", sizes: { S: 1, M: 2, L: 1 },
+    photos: ["img/lace-top.jpg"], fabric: "黑白網紗蕾絲，波浪刺繡，內裡黑色襯布", desc: "層層波浪花邊，下擺透少少，單著或者疊恤衫都得。" },
+  { id: "r-london", name: "倫敦花園短袖上衣", price: 520, cat: "上衣", sizes: { S: 2, M: 3, L: 0 },
+    photos: ["img/london-top.jpg"], fabric: "米色棉麻，鬱金香配倫敦塔橋印花", desc: "闊身短袖，後背一排紫色鈕。" },
+  { id: "r-vintage", name: "復古女孩拼條紋恤衫", price: 680, cat: "上衣", sizes: { S: 1, M: 1, L: 1 },
+    photos: ["img/vintage-shirt.jpg"], fabric: "復古女孩印花棉 × 紅白細條紋棉", desc: "左右兩邊用唔同布，袖口收褶。" },
+  { id: "r-bird", name: "月亮小鳥連身裙", price: 880, cat: "連身裙", sizes: { S: 0, M: 2, L: 1 },
+    photos: ["img/bird-dress.jpg"], fabric: "深紫底，白月亮同小鳥印花", desc: "小圓領，前排鈕，配同色腰帶。" },
+  { id: "r-skirt", name: "寶藍條紋半截裙", price: 620, cat: "下身", sizes: { S: 2, M: 2, L: 2 },
+    photos: ["img/stripe-skirt.jpg"], fabric: "米白泡泡布 × 寶藍條紋，寶藍腰頭", desc: "闊腰頭，側邊一個鬆緊袋口嘅口袋。" },
 ];
 
 const SIZE_CHART = {
-  上衣: { head: ["", "S", "M", "L"], rows: [["胸圍", 96, 104, 112], ["肩寬", 42, 45, 48], ["衫長", 68, 71, 74]] },
-  下身: { head: ["", "S", "M", "L"], rows: [["腰圍", 66, 72, 78], ["臀圍", 96, 102, 108], ["長度", 94, 97, 100]] },
-  外套: { head: ["", "S", "M", "L"], rows: [["胸圍", 104, 112, 120], ["肩寬", 44, 47, 50], ["衫長", 64, 67, 70]] },
-  雜貨: { head: ["", "F"], rows: [["長度", 85], ["闊度", 70]] },
+  上衣:   { head: ["", "S", "M", "L"], rows: [["胸圍", 96, 104, 112], ["肩寬", 40, 42, 44], ["衫長", 58, 61, 64]] },
+  下身:   { head: ["", "S", "M", "L"], rows: [["腰圍", 64, 70, 76], ["臀圍", 94, 100, 106], ["長度", 80, 82, 84]] },
+  連身裙: { head: ["", "S", "M", "L"], rows: [["胸圍", 92, 100, 108], ["腰圍", 80, 88, 96], ["裙長", 110, 113, 116]] },
 };

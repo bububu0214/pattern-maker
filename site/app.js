@@ -2,6 +2,7 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const money = n => "HK$" + n.toLocaleString("en-US");
+  const pic = (src, alt = "") => `<img src="${src}" alt="${esc(alt)}" loading="lazy">`;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   // ---------- storage (may be unavailable inside a sandboxed frame) ----------
@@ -47,9 +48,9 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
 
   // ---------- cart ----------
-  let cart = store.get("cart", []);
+  let cart = store.get("cart-v2", []);
   function saveCart() {
-    store.set("cart", cart);
+    store.set("cart-v2", cart);
     $("#cartCount").textContent = cart.length;
     renderCart();
   }
@@ -64,7 +65,7 @@
     } else {
       box.innerHTML = cart.map((it, i) => `
         <div class="item">
-          <div class="thumb">${garment(it.art, it.fabric)}</div>
+          <div class="thumb">${pic(it.img, it.name)}</div>
           <div>
             <b>${esc(it.name)}</b>
             <small>${esc(it.lines.join(" · "))}</small>
@@ -102,7 +103,6 @@
   // =========================================================
   // HOME
   // =========================================================
-  $("#heroArt").innerHTML = garment("shirt", "linen-natural");
 
   // =========================================================
   // CUSTOM FLOW
@@ -146,12 +146,12 @@
     const s = styleOf();
     const p = $("#preview");
     if (!s) {
-      p.innerHTML = `<div class="pic">${garment("shirt", null)}</div>
+      p.innerHTML = `<div class="pic">${pic("img/blouse-collage.jpg", "訂製款")}</div>
         <div class="info"><p class="hint">揀一個款式開始。</p></div>`;
       return;
     }
     const f = flow.fabric ? FABRICS[flow.fabric] : null;
-    p.innerHTML = `<div class="pic">${garment(s.art, flow.fabric)}</div>
+    p.innerHTML = `<div class="pic">${pic((flow.fabric && s.photos[flow.fabric]) || s.cover, s.name)}</div>
       <div class="info">
         <h3>${esc(s.name)}</h3>
         <div class="line"><span>布料</span><b>${f ? esc(f.name) : "—"}</b></div>
@@ -166,8 +166,8 @@
       <div class="style-list">
         ${CUSTOM_STYLES.map(s => `
           <button class="style-opt ${flow.style === s.id ? "on" : ""}" data-style="${s.id}" type="button">
-            <div class="thumb">${garment(s.art, s.fabrics[0])}</div>
-            <div><h3>${esc(s.name)}</h3><p>${esc(s.desc)}</p><span class="tag">${s.fabrics.length} 款布料 · ${s.days} 日</span></div>
+            <div class="thumb">${pic(s.cover, s.name)}</div>
+            <div><h3>${esc(s.name)}</h3><p>${esc(s.desc)}</p><span class="tag">${Object.keys(s.photos).length} 款布料 · ${s.days} 日</span></div>
             <div class="price">由 ${money(s.base)}</div>
           </button>`).join("")}
       </div>
@@ -178,19 +178,18 @@
     const s = styleOf();
     const f = flow.fabric ? FABRICS[flow.fabric] : null;
     return `
-      <div><h2>揀布料</h2><p class="hint">呢款適合以下布料。㩒一下，左邊會即刻換色。想睇實物布辦，可以預約到工作室。</p></div>
+      <div><h2>揀布料</h2><p class="hint">呢款可以用以下布料。㩒一下，就會顯示用呢款布造出嚟嘅樣。${s.note ? esc(s.note) : ""}</p></div>
       <div class="fabrics">
-        ${s.fabrics.map(k => {
+        ${Object.keys(s.photos).map(k => {
           const fb = FABRICS[k];
           return `<button class="fabric ${flow.fabric === k ? "on" : ""}" data-fabric="${k}" type="button">
-            <div class="swatch t-${fb.tex}" style="background-color:${fb.color}"></div>
+            <div class="swatch">${pic(fb.swatch, fb.name)}</div>
             <div class="name">${esc(fb.name)}</div>
-            <div class="detail">${esc(fb.origin)} · ${esc(fb.weight)} · ${esc(fb.season)}</div>
             <div class="plus">${fb.extra ? "+" + money(fb.extra) : "不另加錢"}</div>
           </button>`;
         }).join("")}
       </div>
-      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.feel)}。產地${esc(f.origin)}，${esc(f.weight)}身，適合${esc(f.season)}。</div>` : ""}
+      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.desc)}。</div>` : ""}
       <div class="flow-nav">
         <button class="btn ghost" data-prev type="button">上一步</button>
         <button class="btn" data-next type="button" ${flow.fabric ? "" : "disabled"}>下一步：入尺寸</button>
@@ -272,7 +271,7 @@
       if (flow.style !== st.dataset.style) {
         flow.style = st.dataset.style;
         // keep fabric only if the new style offers it
-        if (!styleOf().fabrics.includes(flow.fabric)) flow.fabric = null;
+        if (!(flow.fabric in styleOf().photos)) flow.fabric = null;
       }
       renderFlow();
       return;
@@ -284,7 +283,7 @@
     if (t.closest("[data-add]")) {
       const s = styleOf();
       addToCart({
-        custom: true, name: s.name + "（訂製）", art: s.art, fabric: flow.fabric, price: priceOf(),
+        custom: true, name: s.name + "（訂製）", img: s.photos[flow.fabric], price: priceOf(),
         lines: [FABRICS[flow.fabric].name, ...s.measures.map(k => `${MEASURES[k].label}${flow.m[k]}`)],
       });
       toast("已加入購物袋");
@@ -333,9 +332,9 @@
     $("#readyGrid").innerHTML = list.map(r => {
       const stock = Object.values(r.sizes).reduce((a, b) => a + b, 0);
       return `<button class="card" data-ready="${r.id}" type="button">
-        <div class="pic stitched">${garment(r.art, r.fabric)}</div>
+        <div class="pic">${pic(r.photos[0], r.name)}</div>
         <div class="meta"><h3>${esc(r.name)}</h3><span class="price">${money(r.price)}</span></div>
-        <div class="sub">${esc(FABRICS[r.fabric].name)} ${stock <= 3 ? `<span class="tag rust">只剩 ${stock} 件</span>` : ""}</div>
+        <div class="sub">${esc(r.cat)} ${stock <= 3 ? `<span class="tag rust">只剩 ${stock} 件</span>` : ""}</div>
       </button>`;
     }).join("");
   }
@@ -351,20 +350,19 @@
   });
 
   function openProduct(r) {
-    const f = FABRICS[r.fabric];
     const chart = SIZE_CHART[r.cat] || SIZE_CHART["上衣"];
     const firstInStock = Object.keys(r.sizes).find(k => r.sizes[k] > 0);
     let chosen = Object.keys(r.sizes).length === 1 ? firstInStock : null;
 
     openModal(`
       <div class="pd">
-        <div class="pic">${garment(r.art, r.fabric)}</div>
+        <div class="pic">${pic(r.photos[0], r.name)}</div>
         <div class="body">
           <div class="eyebrow">ready to wear</div>
           <h2>${esc(r.name)}</h2>
           <div>${money(r.price)}</div>
           <p class="lede">${esc(r.desc)}</p>
-          <div class="fabric-note">${esc(f.name)} · ${esc(f.origin)} · ${esc(f.feel)}</div>
+          <div class="fabric-note">${esc(r.fabric)}</div>
           <div>
             <p class="hint" style="font-size:14px;margin-bottom:8px">尺碼</p>
             <div class="sizes">
@@ -394,7 +392,7 @@
         add.textContent = "加入購物袋";
       }
       if (e.target.id === "addReady" && chosen) {
-        addToCart({ name: r.name, art: r.art, fabric: r.fabric, price: r.price, lines: [`尺碼 ${chosen}`, f.name] });
+        addToCart({ name: r.name, img: r.photos[0], price: r.price, lines: [`尺碼 ${chosen}`] });
         closeAll();
         toast("已加入購物袋");
       }
