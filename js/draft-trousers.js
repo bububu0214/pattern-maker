@@ -28,7 +28,7 @@
 
     function piece(isFront) {
       var hipW = isFront ? Ht / 4 - 1 : Ht / 4 + 1;
-      var ext = isFront ? Ht / 16 : Ht / 10;
+      var ext = isFront ? 0.045 * Ht : 0.11 * Ht;                      // 前襠寬 0.045H、後襠寬 0.11H（中文褲原型常用）
       var drop = isFront ? 0 : 0.7;                                  // 後浪點落低
       var crotchP = P(-ext, CD + drop);
       var waistFin = isFront ? Wt / 4 - 0.5 : Wt / 4 + 0.5;
