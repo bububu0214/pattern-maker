@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>紙樣生成器 — 女裝基本上身原型</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>紙樣生成器</h1>
+    <p class="sub">女裝基本上身原型（前片、後片，連腰褶）</p>
+  </header>
+
+  <main>
+    <form id="form" class="panel" autocomplete="off">
+      <fieldset>
+        <legend>身體尺寸（厘米）</legend>
+        <label>胸圍 <input type="number" name="bust" step="0.1" min="60" max="160" value="84" required></label>
+        <label>腰圍 <input type="number" name="waist" step="0.1" min="45" max="150" value="66" required></label>
+        <label>肩寬 <input type="number" name="shoulder" step="0.1" min="28" max="55" value="38" required>
+          <small>左肩點至右肩點（經後頸）</small></label>
+        <label>背長 <input type="number" name="backLen" step="0.1" min="30" max="50" value="38" required>
+          <small>後頸點至腰線</small></label>
+        <label>前長 <input type="number" name="frontLen" step="0.1" min="30" max="60" value="42" required>
+          <small>側頸點經胸點至腰線</small></label>
+        <label>領圍 <input type="number" name="neck" step="0.1" min="28" max="50" value="36" required></label>
+        <label>夾圈 <input type="number" name="armhole" step="0.1" min="30" max="60" value="40" required></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>放鬆量（厘米，全身計）</legend>
+        <label>胸圍 + <input type="number" name="easeBust" step="0.5" min="0" max="30" value="8"></label>
+        <label>腰圍 + <input type="number" name="easeWaist" step="0.5" min="0" max="30" value="4"></label>
+        <label>領圍 + <input type="number" name="easeNeck" step="0.5" min="0" max="10" value="0"></label>
+        <label>夾圈 + <input type="number" name="easeArmhole" step="0.5" min="0" max="10" value="2"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>縫份同裁剪</legend>
+        <label>縫份 <input type="number" name="sa" step="0.1" min="0" max="5" value="1"> <span>cm</span></label>
+        <label class="chk"><input type="checkbox" name="cfFold" checked> 前中對摺（唔加縫份）</label>
+        <label class="chk"><input type="checkbox" name="cbFold" checked> 後中對摺（唔加縫份）</label>
+        <label class="chk"><input type="checkbox" name="dims" checked> 顯示尺寸標示</label>
+      </fieldset>
+
+      <div class="buttons">
+        <button type="submit" class="primary">生成紙樣</button>
+        <button type="button" id="reset">還原預設</button>
+      </div>
+      <div class="buttons downloads">
+        <button type="button" id="dlPdf" disabled>下載 PDF（1:1 A4）</button>
+        <button type="button" id="dlSvg" disabled>下載 SVG</button>
+        <button type="button" id="dlDxf" disabled>下載 DXF</button>
+      </div>
+      <div id="warnings"></div>
+    </form>
+
+    <section class="preview-wrap">
+      <div class="toolbar">
+        <span>預覽</span>
+        <button type="button" id="zoomOut" title="縮細">－</button>
+        <button type="button" id="zoomFit">全圖</button>
+        <button type="button" id="zoomIn" title="放大">＋</button>
+        <span class="legend">
+          <i class="l-cut"></i>裁剪線 <i class="l-seam"></i>縫線 <i class="l-grain"></i>布紋線 <i class="l-dim"></i>尺寸
+        </span>
+      </div>
+      <div id="preview" class="preview"><p class="empty">輸入尺寸之後按「生成紙樣」。</p></div>
+      <div id="info"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>PDF 打印時請揀「實際大小 / 100%」，唔好揀「配合頁面」。打印後先用尺量 10 cm 測試方格。</p>
+  </footer>
+
+  <script src="js/geom.js"></script>
+  <script src="js/draft.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/export-svg.js"></script>
+  <script src="js/export-dxf.js"></script>
+  <script src="js/export-pdf.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
