@@ -53,9 +53,9 @@
       var waistW = ov ? (isFront ? ov.front : ov.back) : (isFront ? Wt / 4 + 0.5 : Wt / 4 - 0.5);
       var hipW = isFront ? Ht / 4 + 0.5 : Ht / 4 - 0.5;
       // 橡筋腰：冇拉鏈，腰口要拉得過臀圍（全件最少臀圍 + 2）
-      var elasticPiece = elasticAll || (elasticHalf && !isFront);
+      var elasticPiece = elasticAll;                // 全橡筋：腰由臀直上，冇褶
+      var halfBack = elasticHalf && !isFront;       // 前平後橡筋嘅後幅：照原型畫，唔車褶，後中加闊
       if (elasticAll) waistW = hipW + 0.5;
-      else if (elasticPiece) waistW = Math.max(hipW + 0.5, (Ht + 2) / 2 - frontFlat);
       var excess = elasticPiece ? 0 : hipW - waistW;
       if (excess < 0) warnings.push('腰圍大過臀圍，裙會冇收腰。');
       // 側縫收一部份，其餘做褶（每個褶最多 3.5 cm）
@@ -64,16 +64,13 @@
       if (elasticPiece) { side = hipW - waistW; dartTotal = 0; }
       var n = dartTotal < 0.3 ? 0 : (dartTotal > (st.dartXs ? 3.5 : (isFront ? 3 : 2.5)) ? 2 : 1);
       if (n && dartTotal / n > 3.5) { side += dartTotal - 3.5 * n; dartTotal = 3.5 * n; }
+      if (halfBack) n = 0;                         // 褶位留俾橡筋收
       var dw = n ? dartTotal / n : 0;
 
       var sx = waistW + dartTotal;                 // 側腰點（褶未收）
       var cy = isFront ? (st.frontDrop || 0) : (ov ? 0 : 0.6);   // 後中腰線落 0.6；連身裙前中跟上身落低
       var rise0 = elasticAll ? 0 : 0.7;
-      if (elasticHalf && !isFront) {
-        // 前平後橡筋：後幅腰闊過臀，側骨斜咗會長啲；將後側腰降低返等前後側骨一樣長
-        rise0 = 0.7 - (Math.hypot(D + 0.7, sx - hipW) - (D + 0.7));
-      }
-      if (elasticPiece) cy = 0;
+      if (elasticPiece || halfBack) cy = 0;
       var Sw = P(sx, -rise0);                      // 側腰升 0.7（橡筋腰唔升）
       var C = P(0, cy);
       var waistCurve = [C, P(sx * 0.5, cy), P(sx * 0.82, -rise0 + (rise0 ? 0.12 : 0)), Sw];
@@ -175,8 +172,36 @@
         { kind: 'edge', edge: 'side', zh: '側縫', en: 'Side', frac: 0.55 },
         { kind: 'edge', edge: 'waist', zh: '腰（連褶）', en: 'Waist', inside: true, frac: 0.5 }
       ];
-      pc.info = { waistW: waistW, hipW: hipW, dartW: dw, darts: n, side: side, hemW: sideHemX };
+      pc.info = { waistW: halfBack ? sx : waistW, hipW: hipW, dartW: dw, darts: n, side: side, hemW: sideHemX };
+      if (halfBack) widenAtCenter(pc, Math.max(0, (Ht + 2) / 2 - frontFlat - sx));
       return pc;
+    }
+
+    /** 前平後橡筋：後中直落加闊（橡筋收返），側骨唔變 */
+    function widenAtCenter(pc, add) {
+      if (add < 0.05) return;
+      var M = PM.modify;
+      var sh = function (p) { return P(p.x + add, p.y); };
+      var moved = M.transformPiece(pc, sh);
+      var segs = M.toSegs(moved.edges.filter(function (e) { return e.name !== 'center'; }));
+      var w0 = moved.edges[0].pts[0], h1 = moved.edges.filter(function (e) { return e.name === 'hem'; })[0];
+      var hEnd = h1.pts[h1.pts.length - 1];
+      var line = function (name, a, b) { return { name: name, line: true, b: B.line(a, b) }; };
+      var cEdge = pc.edges.filter(function (e) { return e.name === 'center'; })[0];
+      segs = [line('waist', P(0, w0.y), w0)].concat(segs).concat([line('hem', hEnd, P(0, hEnd.y))]);
+      var edges = M.toEdges(segs);
+      edges.push({ name: 'center', pts: cEdge.pts.map(function (p) { return P(0, p.y); }) });
+      moved.edges = edges;
+      moved.notches = moved.notches.map(function (n) { return n.edge === 'center' ? Object.assign({}, n, { p: P(0, n.p.y) }) : n; });
+      moved.guides = moved.guides.map(function (gd) {
+        return gd.zh === '臀圍線' ? Object.assign({}, gd, { pts: [P(0, gd.pts[0].y), gd.pts[1]] }) : gd;
+      });
+      moved.guides.push({ pts: [P(add, 0.3), P(add, D)], dash: [0.4, 0.3], zh: '加闊 ' + f1(add) + '（橡筋收）', en: 'ADDED' });
+      moved.dims = moved.dims.filter(function (d) { return d.kind !== 'dim' && d.kind !== 'below'; });
+      moved.dims.push({ kind: 'below', a: P(0, hEnd.y), b: moved.edges[1].pts[moved.edges[1].pts.length - 1], zh: '下擺寬', en: 'Hem' });
+      moved.info.waistW = pc.info.waistW + add;
+      moved.info.hemW = pc.info.hemW + add;
+      Object.keys(moved).forEach(function (k) { pc[k] = moved[k]; });
     }
 
     /* ---- 特別裙款：碎褶裙、百褶裙、半圓／全圓裙 ---- */
