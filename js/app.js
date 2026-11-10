@@ -510,7 +510,8 @@
     }).then(function (r) {
       if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
       if (r.isTop === false) {
-        aiResult.innerHTML = '<div class="ai err"><p>' + esc(r.summary || 'AI 認唔到上衣款式。') + '</p></div>';
+        aiResult.innerHTML = '<div class="ai err"><p>' + esc(r.summary || 'AI 認唔到上衣款式。') + '</p>' +
+          '<p><b>冇改到任何設定</b>：呢個生成器暫時只做上衣（衫、連身裙上身），下面仲係之前嘅款式。請換一張上衣嘅相，或者自己喺下面揀款式。</p></div>';
         return;
       }
       applyAI(r);
