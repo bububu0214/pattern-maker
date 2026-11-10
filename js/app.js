@@ -502,8 +502,16 @@
       images.push({ file: f, url: URL.createObjectURL(f), view: !hasFront ? 'front' : (!hasBack ? 'back' : 'detail') });
     });
     imgInput.value = ''; // 等同一張相可以再揀
-    aiResult.innerHTML = '';
     renderThumbs();
+    if (!files.length) return;
+    if (sampleFn && imagesOK) {
+      aiResult.innerHTML = '<div class="ai"><p>✅ 已加 ' + images.length + ' 張相。每張下面揀返角度，再撳「AI 分析款式」。</p></div>';
+    } else {
+      aiResult.innerHTML = '<div class="ai"><p>✅ 已加 ' + images.length + ' 張相（喺上面）。</p>' +
+        '<p>呢個版本冇 AI，唔會自動睇相。請睇住張相：</p>' +
+        '<p>① 喺「你嘅要求」打字，例如「A字連身裙，V領，短袖」，再撳「照文字要求改款式」；或者<br>② 喺下面「② 款式」自己揀。</p>' +
+        '<p class="hint">想 AI 自動睇相，要用 claude.ai 嗰個版本。</p></div>';
+    }
   });
 
   if (hasClaude) {
