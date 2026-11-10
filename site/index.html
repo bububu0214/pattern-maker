@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>織里 Atelier · 原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Noto+Serif+TC:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="proto-flag">示意原型 · 圖片為線稿示意，正式版會換上實物相片</div>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="#"><b>織里</b><span>atelier</span></a>
+    <nav class="nav">
+      <a href="#custom" data-nav="custom">訂製</a>
+      <a href="#ready" data-nav="ready">現成款</a>
+      <a href="#" data-nav="home" class="hide-sm">關於</a>
+      <button class="cart-btn" id="cartBtn" type="button">購物袋 <span class="count" id="cartCount">0</span></button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ================= HOME ================= -->
+  <section class="view" id="view-home">
+    <div class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">handmade in Hong Kong</div>
+          <h1>一針一線<br>為你而造</h1>
+          <p class="lede">每件衫都由師傅喺工作室親手裁剪縫製。你揀布料、話我哋知你嘅尺寸，我哋用時間，造一件只屬於你嘅衣服。</p>
+          <div class="cta-row">
+            <a class="btn" href="#custom">開始訂製</a>
+            <a class="btn ghost" href="#ready">睇現成款</a>
+          </div>
+        </div>
+        <div>
+          <div class="art stitched" id="heroArt"></div>
+          <p class="note">— 立領手縫襯衫，原色亞麻</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="padding-top:24px">
+      <div class="wrap">
+        <div class="zones">
+          <a class="zone stitched" href="#custom">
+            <span class="num">01</span>
+            <h2>度身訂製</h2>
+            <p class="lede">款式由我哋設計，布料由你揀，尺寸照你身形。約三至四星期交貨。</p>
+            <span class="go">揀款 → 揀布 → 入尺寸 →</span>
+          </a>
+          <a class="zone stitched" href="#ready">
+            <span class="num">02</span>
+            <h2>現成款</h2>
+            <p class="lede">工作室小批量造好嘅款式，標準尺碼，現貨即寄。</p>
+            <span class="go">S · M · L →</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">how it's made</div>
+          <h2>一件訂製衫嘅旅程</h2>
+        </div>
+        <ol class="process process-wrap">
+          <li><b>揀款</b><small>由我哋設計嘅基本款開始</small></li>
+          <li><b>揀布</b><small>亞麻、靛染棉、羊毛呢……</small></li>
+          <li><b>度身</b><small>跟圖解量，或者預約到工作室</small></li>
+          <li><b>手作</b><small>師傅裁剪、縫製、熨燙</small></li>
+          <li><b>寄出</b><small>附手寫卡同布辦</small></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="wrap story">
+        <div class="portrait stitched">（師傅工作相 · 待拍攝）</div>
+        <div>
+          <div class="eyebrow">the maker</div>
+          <blockquote>「一件衫著得耐，係因為每一條線都有人睇住。我哋唔追潮流，只係想造一件你會著十年嘅衫。」</blockquote>
+          <cite>— 陳師傅，入行二十三年</cite>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CUSTOM ================= -->
+  <section class="view" id="view-custom">
+    <div class="wrap section" style="padding-top:44px">
+      <div class="section-head">
+        <div class="eyebrow">made to measure</div>
+        <h1 style="font-size:clamp(28px,5vw,44px)">度身訂製</h1>
+      </div>
+      <ol class="steps" id="steps">
+        <li data-step="0"><span class="n">1</span>揀款式</li>
+        <li data-step="1"><span class="n">2</span>揀布料</li>
+        <li data-step="2"><span class="n">3</span>入尺寸</li>
+        <li data-step="3"><span class="n">4</span>確認</li>
+      </ol>
+      <div class="flow-grid">
+        <aside class="preview stitched" id="preview"></aside>
+        <div class="panel" id="panel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= READY ================= -->
+  <section class="view" id="view-ready">
+    <div class="wrap section" style="padding-top:44px">
+      <div class="section-head">
+        <div class="eyebrow">ready to wear</div>
+        <h1 style="font-size:clamp(28px,5vw,44px)">現成款</h1>
+        <p class="lede">小批量製作，每款只造十幾件。賣完會再排期，唔會大量生產。</p>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="grid" id="readyGrid"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>
+      <div class="hand">thank you for slowing down.</div>
+      <div>織里 Atelier · 香港工作室（品牌名、地址均為示意）</div>
+    </div>
+    <div>訂製款需全額付款 · 現成款七日內可退換</div>
+  </div>
+</footer>
+
+<!-- cart drawer -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="購物袋">
+  <header><h3>購物袋</h3><button class="x" data-close type="button" aria-label="關閉">×</button></header>
+  <div class="items" id="cartItems"></div>
+  <footer>
+    <div class="total-row"><span>合計</span><b id="cartTotal">HK$0</b></div>
+    <button class="btn block" id="checkoutBtn" type="button">前往結帳</button>
+  </footer>
+</aside>
+
+<!-- modal -->
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="box stitched"><button class="x" data-close type="button" aria-label="關閉">×</button><div id="modalBody"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
