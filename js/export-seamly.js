@@ -179,7 +179,8 @@
     var titles = {
       back: ['Back', 'A', 'B'], front: ['Front', 'B', 'F'], sleeve: ['Sleeve', 'C', 'S'], collar: ['Collar', 'D', 'K'],
       facing: ['Front facing', 'E', 'H'], cuff: ['Cuff', 'F', 'U'], pocket: ['Pocket', 'G', 'P'],
-      skirtBack: ['Skirt back', 'A', 'B'], skirtFront: ['Skirt front', 'B', 'F'], band: ['Waistband', 'C', 'W']
+      skirtBack: ['Skirt back', 'A', 'B'], skirtFront: ['Skirt front', 'B', 'F'], band: ['Waistband', 'C', 'W'],
+      trouserBack: ['Trouser back', 'A', 'B'], trouserFront: ['Trouser front', 'B', 'F'], fly: ['Fly shield', 'D', 'Y']
     };
     var pieceNo = 0;
     res.pieces.forEach(function (pc) {

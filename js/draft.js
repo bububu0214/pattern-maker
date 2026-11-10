@@ -739,6 +739,7 @@
   function draft(m, ease, style) {
     var st = Object.assign({}, DEFAULT_STYLE, style || {});
     if (st.garment === 'skirt' && PM.draftSkirt) return PM.draftSkirt(m, ease, st);
+    if (st.garment === 'trousers' && PM.draftTrousers) return PM.draftTrousers(m, ease, st);
     var warnings = [];
     var bod = bodice(m, ease, st, warnings);
     var pieces = [bod.back, bod.front];

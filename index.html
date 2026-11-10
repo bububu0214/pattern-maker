@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>紙樣生成器 — 女裝上衣同半截裙</title>
+  <title>紙樣生成器 — 女裝上衣、裙、褲</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header>
     <h1>紙樣生成器</h1>
-    <p class="sub">女裝上衣同半截裙：上傳款式圖或者寫低要求 → 按你嘅尺寸出紙樣</p>
+    <p class="sub">女裝上衣、半截裙、褲：上傳款式圖或者寫低要求 → 按你嘅尺寸出紙樣</p>
   </header>
 
   <main>
@@ -36,6 +36,29 @@
           <select name="garment">
             <option value="top">上衣</option>
             <option value="skirt">半截裙</option>
+            <option value="trousers">褲</option>
+          </select></label>
+        <label class="only-trousers">褲型
+          <select name="trouserShape">
+            <option value="straight">直腳褲</option>
+            <option value="slim">窄腳褲</option>
+            <option value="wide">闊腳褲</option>
+          </select></label>
+        <label class="only-trousers">褲長
+          <select name="trouserLenPreset">
+            <option value="shorts">短褲</option>
+            <option value="capri">七分褲</option>
+            <option value="ankle">九分褲</option>
+            <option value="full" selected>長褲</option>
+            <option value="custom">自訂</option>
+          </select></label>
+        <label class="only-trousers">褲長（腰下） <input type="number" name="trouserLen" step="0.5" min="30" max="120" value="96"> <span>cm</span>
+          <small>由腰線度落褲腳（唔計腰頭）</small></label>
+        <label class="only-trousers">腰
+          <select name="trouserWaist">
+            <option value="zip">前拉鏈（門襟）＋腰頭</option>
+            <option value="side">側拉鏈＋腰頭</option>
+            <option value="elastic">鬆緊帶腰</option>
           </select></label>
         <label class="only-skirt">裙型
           <select name="skirtShape">
@@ -74,7 +97,7 @@
             <option value="back">後中</option>
             <option value="side">側邊</option>
           </select></label>
-        <label class="only-skirt">腰頭闊 <input type="number" name="bandW" step="0.5" min="2" max="8" value="3"> <span>cm</span></label>
+        <label class="only-skirt only-trousers">腰頭闊 <input type="number" name="bandW" step="0.5" min="2" max="8" value="3"> <span>cm</span></label>
         <label class="only-top">領口
           <select name="neckline">
             <option value="round">圓領</option>
@@ -194,6 +217,10 @@
           <small>側頸點經胸點至腰線</small></label>
         <label class="only-top">領圍 <input type="number" name="neck" step="0.1" min="28" max="50" value="36" required></label>
         <label class="only-top">夾圈 <input type="number" name="armhole" step="0.1" min="30" max="60" value="40" required></label>
+        <label class="only-trousers">股上 <input type="number" name="crotchDepth" step="0.1" min="18" max="40" value="26">
+          <small>腰線至櫈面（坐低度側邊）</small></label>
+        <label class="only-trousers">褲長尺寸 <input type="number" name="outseam" step="0.1" min="60" max="130" value="96">
+          <small>腰線至腳踭（側邊）</small></label>
         <label>腰至臀 <input type="number" name="waistToHip" step="0.1" min="10" max="30" value="18" required>
           <small>腰線至臀圍線（側邊度）</small></label>
         <label class="only-top">臂長 <input type="number" name="armLen" step="0.1" min="40" max="75" value="56" required>
@@ -257,6 +284,7 @@
   <script src="js/geom.js"></script>
   <script src="js/draft.js"></script>
   <script src="js/draft-skirt.js"></script>
+  <script src="js/draft-trousers.js"></script>
   <script src="js/modify.js"></script>
   <script src="js/layout.js"></script>
   <script src="js/export-svg.js"></script>
