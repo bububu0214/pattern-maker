@@ -55,6 +55,7 @@
     form.elements.collarW.disabled = v.collar === 'none';
     form.elements.cuff.disabled = !(v.sleeve === 'long' || v.sleeve === 'elbow');
     form.elements.cuffH.disabled = form.elements.cuff.disabled || v.cuff === 'none';
+    updateTotal();
   }
   ['collar', 'cuff'].forEach(function (k) { form.elements[k].addEventListener('change', syncControls); });
   form.elements.fit.addEventListener('change', function () {
@@ -63,9 +64,20 @@
   });
   form.elements.lengthPreset.addEventListener('change', function () {
     var p = form.elements.lengthPreset.value;
-    if (p !== 'custom') setVal('hemLen', lengthFor(p, readForm()));
+    if (p !== 'custom') { setVal('hemLen', lengthFor(p, readForm())); updateTotal(); }
   });
-  form.elements.hemLen.addEventListener('input', function () { setVal('lengthPreset', 'custom'); });
+  function updateTotal() {
+    var bl = parseFloat(form.elements.backLen.value), hl = parseFloat(form.elements.hemLen.value);
+    if (!isNaN(bl) && !isNaN(hl)) setVal('totalLen', Math.round((bl + hl) * 10) / 10);
+  }
+  form.elements.hemLen.addEventListener('input', function () { setVal('lengthPreset', 'custom'); updateTotal(); });
+  form.elements.backLen.addEventListener('input', updateTotal);
+  form.elements.totalLen.addEventListener('input', function () {
+    var t = parseFloat(form.elements.totalLen.value), bl = parseFloat(form.elements.backLen.value);
+    if (isNaN(t) || isNaN(bl)) return;
+    setVal('hemLen', Math.round((t - bl) * 10) / 10);
+    setVal('lengthPreset', 'custom');
+  });
   form.elements.hemShape.addEventListener('change', function () {
     if (form.elements.hemShape.value === 'aline' && !(parseFloat(form.elements.flare.value) > 0)) setVal('flare', 4);
     syncControls();
@@ -356,10 +368,12 @@
     'fabricTip: in Traditional Chinese (Cantonese), ONLY if the garment mixes fabrics or colours by area: which pattern pieces to cut in which fabric (pieces: 前片, 後片, 袖, 衣領, 袖頭, 貼袋), e.g. "袖同袖頭用牛仔布，前後片用印花布". Otherwise "". Never mention prints or colours otherwise; they do not change the pattern.',
     'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, gathers, ruffles, princess seams, yokes, asymmetry, wrap fronts, pocket flaps, side pockets). Do not list anything it can make, nor fabric/print/colour. "" if none.',
     'If the image is not a garment or has no top, set "isTop": false and explain in "summary".',
-    'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null}',
+    'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "totalLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null}',
     'and "requestReply": "". Put a number (cm) in "cm" ONLY when the user\'s request asks for a specific or relative size; otherwise null.',
     'cm meanings: neckWiden = neckline widened per side along the shoulder; neckDropF / neckDropB = front / back neckline lowered from the base of the neck (negative raises it);',
-    'hemLen = length below the waistline (negative = above the waist); sleeveLen = sleeve length from the shoulder point; flare = A-line flare per side seam at the hem; collarW = collar width; cuffH = cuff height.',
+    'hemLen = length below the waistline (negative = above the waist); totalLen = overall garment length at centre back from the nape (back neck point) to the hem.',
+    'When the user gives a garment length (e.g. 衫長 45cm) without saying it is measured from the waist, put it in totalLen (NOT hemLen); the generator converts it. Set the length category to match it.',
+    'sleeveLen = sleeve length from the shoulder point; flare = A-line flare per side seam at the hem; collarW = collar width; cuffH = cuff height.',
     'The USER REQUEST (if any) has priority over the images. Relative requests ("longer", "a bit wider") change the CURRENT SETTINGS by a sensible amount (usually 2-5 cm).',
     'With no images, start from the CURRENT SETTINGS and change only what the request asks for (keep every other field as it is now).',
     'requestReply: in Traditional Chinese (Cantonese), one or two short sentences on how the request was applied and anything in it the generator cannot do; "" if there was no request.'
@@ -377,7 +391,7 @@
     return JSON.stringify({
       neckline: v.neckline, neckWidth: neckWidth, frontNeckDepth: fnd, backNeckDepth: bnd, length: len, hem: v.hemShape,
       sleeve: v.sleeve, fit: v.fit, frontOpening: v.opening, collar: v.collar, pocket: v.pocket, cuff: v.cuff,
-      cm: { neckWiden: v.neckWiden, neckDropF: v.neckDropF, neckDropB: v.neckDropB, hemLen: v.hemLen, sleeveLen: v.sleeveLen,
+      cm: { neckWiden: v.neckWiden, neckDropF: v.neckDropF, neckDropB: v.neckDropB, hemLen: v.hemLen, totalLen: v.backLen + v.hemLen, sleeveLen: v.sleeveLen,
         flare: v.flare, collarW: v.collarW, cuffH: v.cuffH }
     });
   }
@@ -431,6 +445,8 @@
     // 要求入面有具體尺寸就用
     var cm = r.cm || {};
     var lim = { neckWiden: [0, 10], neckDropF: [-5, 25], neckDropB: [0, 20], hemLen: [-15, 90], sleeveLen: [0, 80], flare: [0, 30], collarW: [3, 15], cuffH: [2, 12] };
+    var tl = num(cm.totalLen, 15, 140);
+    if (tl != null) cm.hemLen = Math.max(-15, Math.min(90, tl - v.backLen));
     Object.keys(lim).forEach(function (k) {
       var x = num(cm[k], lim[k][0], lim[k][1]);
       if (x == null) return;
@@ -443,7 +459,7 @@
 
     aiResult.innerHTML = '<div class="ai"><p><b>' + (images.length && imagesOK ? 'AI 睇到：' : 'AI：') + '</b>' + esc(r.summary || '') + '</p>' +
       (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
-      '<p>已設定：' + ZH.neckline[neckline] + '、' + (num(cm.hemLen, -15, 90) != null ? '腰下 ' + form.elements.hemLen.value + ' cm' : ZH.length[length]) + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
+      '<p>已設定：' + ZH.neckline[neckline] + '、' + (num(cm.hemLen, -15, 90) != null ? '衫總長 ' + form.elements.totalLen.value + ' cm（腰下 ' + form.elements.hemLen.value + ' cm）' : ZH.length[length]) + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
       ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
       (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') + '</p>' +
       (r.fabricTip ? '<p>🧵 用布：' + esc(r.fabricTip) + '</p>' : '') +
