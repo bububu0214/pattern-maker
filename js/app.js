@@ -263,9 +263,31 @@
   var reqBox = document.getElementById('request');
   var images = []; // [{file, url, view}]
   var maxImages = 6, sampleFn = null, imagesOK = false, aiBusy = false;
+  var applyReqBtn = document.getElementById('applyReq');
   function updateAnalyze() {
     analyzeBtn.hidden = !(sampleFn && ((imagesOK && images.length) || reqBox.value.trim()));
+    applyReqBtn.hidden = !reqBox.value.trim();
   }
+
+  /* 唔使 AI：網頁自己讀文字要求 */
+  applyReqBtn.addEventListener('click', function () {
+    var cur = readForm();
+    var r = PM.parseRequest(reqBox.value, cur);
+    Object.keys(r.set).forEach(function (k) {
+      var el = form.elements[k];
+      if (!el) return;
+      if (el.type === 'checkbox') el.checked = !!r.set[k]; else el.value = r.set[k];
+    });
+    syncControls();
+    var html = '<div class="ai' + (r.done.length ? '' : ' err') + '">';
+    if (r.done.length) html += '<p><b>已照做：</b>' + esc(r.done.join('、')) + '</p>';
+    else html += '<p>認唔到要改乜。試下用簡單講法，例如「V領，短袖，衫長45cm，唔要口袋」。</p>';
+    if (r.cannot.length) html += '<p>⚠️ 做唔到：' + esc(r.cannot.join('、')) + '</p>';
+    if (r.unknown.length) html += '<p>❓ 唔明：「' + esc(r.unknown.join('」「')) + '」，請改用簡單講法或者自己喺下面揀。</p>';
+    html += '</div>';
+    aiResult.innerHTML = html;
+    if (r.done.length) generate();
+  });
   reqBox.addEventListener('input', updateAnalyze);
   var VIEWS = { front: '前面', back: '後面', side: '側面', detail: '細節' };
   var VIEW_EN = { front: 'front view', back: 'back view', side: 'side view', detail: 'close-up detail' };
@@ -317,8 +339,8 @@
         imagesOK = !!(lim && lim.images);
         if (imagesOK) maxImages = Math.max(1, Math.min(6, lim.images.maxCount || 1));
         aiHint.textContent = imagesOK
-          ? '可以加幾張相（例如前面一張、後面一張），每張下面揀返係邊個角度；亦可以寫低你嘅要求。撳「AI 分析款式」，AI 會綜合晒嚟設定款式，你嘅要求優先。'
-          : '呢度用唔到 AI 睇相，但可以寫低你嘅要求，撳「AI 分析款式」由 AI 幫你設定款式。';
+          ? '可以加幾張相（前面、後面…）同寫低要求，撳「AI 分析款式」由 AI 綜合設定（你嘅要求優先）。只係寫字嘅話，撳「照文字要求改款式」唔使用 AI 都得。'
+          : '寫低要求，撳「照文字要求改款式」（唔使 AI），或者「AI 分析款式」由 AI 幫你設定。';
         renderThumbs();
       });
     }).catch(function () { /* 用唔到 AI：保持手動 */ });

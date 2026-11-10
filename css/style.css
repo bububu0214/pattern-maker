@@ -105,7 +105,8 @@ select { width: 100%; padding: 6px 8px; font-size: 1rem; border: 1px solid #ccc;
   position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; padding: 0; line-height: 22px;
   border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; border: none; font-size: 14px;
 }
-#analyze { width: 100%; background: #2e5fa8; color: #fff; border-color: #2e5fa8; font-weight: bold; }
+#analyze { width: 100%; background: #2e5fa8; color: #fff; border-color: #2e5fa8; font-weight: bold; margin-top: 6px; }
+#applyReq { width: 100%; background: #8a4b2a; color: #fff; border-color: #8a4b2a; font-weight: bold; }
 #aiResult .ai { margin-top: 8px; padding: 8px 10px; background: #eef4ff; border-left: 4px solid #2e5fa8; border-radius: 4px; font-size: .88rem; }
 #aiResult .ai.err { background: #fdecea; border-color: #d0342c; }
 #aiResult .ai p { margin: 4px 0; }

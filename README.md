@@ -18,6 +18,7 @@ Repo 嘅 Settings → Pages → Source 揀「Deploy from a branch」→ Branch �
 ## 用法
 
 1. **上傳款式圖（可選）**：揀衫嘅設計圖或者相，可以加幾張（前面、後面、側面、細節），每張揀返係邊個角度
+   - **唔使登入**：喺「你嘅要求」寫低想點改，撳「照文字要求改款式」，網頁自己認常用字眼（例如「V領，短袖，衫長45cm，唔要口袋」、「領口開大2cm」、「袖長啲」、「寬鬆」），認唔到嘅會提你
    - 亦可以喺「你嘅要求」寫低想點改（例如「唔要口袋、袖長啲、衫長 65 cm」），AI 會照做，要求優先過相；冇相淨係打字都得
    - 喺 claude.ai 網上版：撳「AI 分析款式」，AI 會認出領口、衫長、下擺、袖、鬆緊度、有冇開胸，自動填好款式
    - 其他情況（例如電腦直接開 `index.html`）：AI 用唔到，可以睇住張圖自己揀款式
@@ -88,5 +89,6 @@ js/export-svg.js    SVG 輸出（亦用嚟做畫面預覽）
 js/export-pdf.js    A4 分頁 PDF 輸出
 js/export-dxf.js    DXF 輸出
 js/export-seamly.js Seamly2D .sm2d 輸出
+js/parse-request.js 唔使 AI 嘅文字要求讀取
 js/app.js           介面控制、上傳圖片、AI 分析
 ```
