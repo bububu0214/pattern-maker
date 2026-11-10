@@ -67,11 +67,16 @@
     var ents = [];
     var edge = function (n) { return pc.edges.filter(function (e) { return e.name === n; })[0]; };
     var outN = function (t) { return P(t.y, -t.x); }; // 順時針多邊形外法線
+    function edgeSa(name) {
+      if (name === pc.fold) return 0;
+      if (sa > 0 && pc.saEdge && pc.saEdge[name] != null && !isNaN(pc.saEdge[name])) return pc.saEdge[name];
+      return sa;
+    }
 
     // 淨樣同縫份
     var seam = [], offs = [];
     pc.edges.forEach(function (e) {
-      var d = e.name === pc.fold ? 0 : sa;
+      var d = edgeSa(e.name);
       for (var i = 0; i < e.pts.length - 1; i++) { seam.push(e.pts[i]); offs.push(d); }
     });
     var cut = sa > 0 ? G.offsetPolygon(seam, offs) : seam;
@@ -121,10 +126,11 @@
       var e = edge(nt.edge);
       if (!e) return;
       var o = nearestOn(e.pts, nt.p), n = outN(o.t);
+      var es = edgeSa(nt.edge);
       var offsets = nt.count === 2 ? [-0.35, 0.35] : [0];
       offsets.forEach(function (k) {
         var q = G.add(o.p, G.mul(o.t, k));
-        ents.push(path([G.add(q, G.mul(n, sa > 0 ? sa : 0)), G.add(q, G.mul(n, sa > 0 ? sa - 0.6 : -0.5))], 'NOTCH'));
+        ents.push(path([G.add(q, G.mul(n, es > 0 ? es : 0)), G.add(q, G.mul(n, es > 0 ? es - 0.6 : -0.5))], 'NOTCH'));
       });
     });
 
@@ -167,10 +173,10 @@
         } else if (d.kind === 'text') {
           ents.push(text(d.p, d.zh, d.en, DIM, d.angle || 0, 'DIM'));
         } else if (d.kind === 'below') {
-          var yLow = maxY + sa + 1.6;
+          var yLow = maxY + Math.max(sa, edgeSa('hem')) + 1.6;
           dimLine(ents, P(d.a.x, yLow), P(d.b.x, yLow), P(0, 0), d.zh, d.en);
           [d.a, d.b].forEach(function (p) {
-            ents.push(path([P(p.x, p.y + sa + 0.2), P(p.x, yLow + 0.3)], 'DIM'));
+            ents.push(path([P(p.x, p.y + Math.max(sa, edgeSa('hem')) + 0.2), P(p.x, yLow + 0.3)], 'DIM'));
           });
         } else if (d.kind === 'edge') {
           var e = edge(d.edge);

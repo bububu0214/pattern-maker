@@ -352,7 +352,7 @@
         foldZh: (isFront ? '前中' : '後中') + '對摺線', foldEn: (isFront ? 'CF' : 'CB') + ' PLACE ON FOLD',
         label: { p: P(w * 0.5, yB - 7.5) },
         cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), P(cx, yHc)],
-        waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW,
+        waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW, saEdge: { hem: st.hemSa },
         _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w }
       };
       pc.dims = [
@@ -483,7 +483,7 @@
       grain: useCuff ? [P(1.5, h + 2), P(1.5, len - 2.5)]
         : [P(c.Ub.x * 0.35, Math.min(h * 0.6, len - 6)), P(c.Ub.x * 0.35, len - 2.5)],
       label: { p: P(c.Uf.x * 0.3, len - h >= 10 ? h + 4 : h * 0.45) },
-      cut: 2, center: null, hemY: len, cutPair: true
+      cut: 2, center: null, hemY: len, cutPair: true, saEdge: { hem: useCuff ? null : st.hemSa }
     };
     var capTotal = G.polyLen(edges[0].pts);
     pc.dims = [
@@ -588,7 +588,7 @@
       marks: [], notches: [],
       grain: [P(fw * 0.55, Math.max(C.y, S.y + 6) + 2), P(fw * 0.55, yHc - 3)],
       label: { p: P(fw * 0.4, (front.yB + yHc) / 2) },
-      cut: 2, cutZh: '裁 2 片＋燙朴 2 片', cutEn: 'CUT 2 + 2 INTERFACING', small: true
+      cut: 2, cutZh: '裁 2 片＋燙朴 2 片', cutEn: 'CUT 2 + 2 INTERFACING', small: true, saEdge: { hem: st.hemSa }
     };
     pc.dims = [{ kind: 'edge', edge: 'center', zh: '長', en: 'Length' }];
     return pc;
@@ -647,6 +647,7 @@
 
   function draft(m, ease, style) {
     var st = Object.assign({}, DEFAULT_STYLE, style || {});
+    if (st.garment === 'skirt' && PM.draftSkirt) return PM.draftSkirt(m, ease, st);
     var warnings = [];
     var bod = bodice(m, ease, st, warnings);
     var pieces = [bod.back, bod.front];
@@ -666,5 +667,8 @@
   PM.draft = draft;
   PM.DEFAULT_STYLE = DEFAULT_STYLE;
   PM.fmt = f1;
-  PM.bez = { split: splitCubic, len: cubicLen };
+  PM.bez = {
+    split: splitCubic, len: cubicLen, pts: cubicPts, edge: bezEdge, line: lineBez, at: bezAt,
+    pointAtY: bezPointAtY, cutAtY: cutBezAtY, reverse: reverseBez
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

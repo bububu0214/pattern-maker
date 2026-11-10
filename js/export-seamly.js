@@ -97,7 +97,13 @@
         ranges[e.name] = [startIdx, nodes.length - 1];
       });
 
-      // 對摺邊：縫份 0
+      // 個別邊嘅縫份（下擺加闊）；對摺邊：縫份 0
+      if (opt.sa > 0 && pc.saEdge) Object.keys(pc.saEdge).forEach(function (k) {
+        var v = pc.saEdge[k];
+        if (!ranges[k] || v == null || isNaN(v) || k === pc.fold) return;
+        nodes[ranges[k][0]].after = n(v);
+        nodes[ranges[k][1]].before = n(v);
+      });
       if (pc.fold && ranges[pc.fold]) {
         nodes[ranges[pc.fold][0]].after = '0';
         nodes[ranges[pc.fold][1]].before = '0';
@@ -172,7 +178,8 @@
     var cursor = 0;
     var titles = {
       back: ['Back', 'A', 'B'], front: ['Front', 'B', 'F'], sleeve: ['Sleeve', 'C', 'S'], collar: ['Collar', 'D', 'K'],
-      facing: ['Front facing', 'E', 'H'], cuff: ['Cuff', 'F', 'U'], pocket: ['Pocket', 'G', 'P']
+      facing: ['Front facing', 'E', 'H'], cuff: ['Cuff', 'F', 'U'], pocket: ['Pocket', 'G', 'P'],
+      skirtBack: ['Skirt back', 'A', 'B'], skirtFront: ['Skirt front', 'B', 'F'], band: ['Waistband', 'C', 'W']
     };
     res.pieces.forEach(function (pc) {
       var m = pc.mirror ? -1 : 1;

@@ -116,3 +116,5 @@ label.req textarea {
   display: block; width: 100%; margin-top: 4px; padding: 8px; font-size: 1rem; font-family: inherit;
   border: 1px solid #ccc; border-radius: 6px; resize: vertical;
 }
+
+[hidden] { display: none !important; }

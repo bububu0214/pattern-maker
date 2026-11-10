@@ -45,7 +45,8 @@
     ['荷葉', '荷葉邊'], ['公主線', '公主線'], ['不對稱|唔對稱', '不對稱設計'], ['交叉|包身|綁帶|綁帶', '交叉／綁帶設計'],
     ['袋蓋', '袋蓋'], ['側袋|插袋|褲袋', '側袋'], ['蝴蝶結', '蝴蝶結'], ['流蘇|毛邊', '流蘇／毛邊'],
     ['恤衫領|襯衫領|翻領|企領|立領|中式領|唐裝領|西裝領|水手領|海軍領|大翻領', '呢款衣領'], ['連帽|帽', '帽'],
-    ['拉鏈|zip', '拉鏈（可以用前中開胸加鈕代替）'], ['開叉|開衩|叉位', '下擺開叉'], ['腰帶|腰頭', '腰帶'], ['蕾絲|花邊', '花邊']
+    ['拉鏈|zip', '拉鏈（可以用前中開胸加鈕代替）', 'top'], ['開叉|開衩|叉位', '下擺開叉', 'top'], ['腰帶|腰頭', '腰帶', 'top'],
+    ['蕾絲|花邊', '花邊'], ['百褶|打褶裙|褶裙|魚尾|裙褶', '裙褶／魚尾'], ['褲耳|皮帶耳', '褲耳'], ['裡布|裏布|內裡', '裡布']
   ];
 
   function parseRequest(text, cur) {
@@ -68,8 +69,29 @@
       return { none: 0, short: 20, elbow: Math.round((c.armLen || 56) * 0.75), long: c.armLen || 56 }[t];
     }
 
+    /* ---- 上衣定半截裙 ---- */
+    var SKIRT_WORDS = '半截裙|半身裙|短裙|長裙|中長裙|窄裙|鉛筆裙|直身裙|直裙|A\\s*字裙|傘裙|迷你裙|skirt|(?<!連身)裙';
+    var TOP_WORDS = '上衣|恤衫|襯衫|T恤|衫|領|袖|top|blouse|shirt';
+    var skirtMode = cur.garment === 'skirt';
+    if (Z(SKIRT_WORDS).test(src)) {
+      skirtMode = true;
+      if (cur.garment !== 'skirt') { put('garment', 'skirt'); put('easeWaist', 1); put('easeHip', 4); done.push('改做半截裙'); }
+    } else if (cur.garment === 'skirt' && Z(TOP_WORDS).test(src)) {
+      skirtMode = false;
+      put('garment', 'top'); var fe = FIT_EASE[c.fit] || FIT_EASE.fitted; Object.keys(fe).forEach(function (k) { put(k, fe[k]); });
+      done.push('改做上衣');
+    }
+
     /* ---- 做唔到 ---- */
-    CANNOT.forEach(function (it) { each(it[0], function () { if (cannot.indexOf(it[1]) < 0) cannot.push(it[1]); }); });
+    CANNOT.forEach(function (it) {
+      if (skirtMode && it[2] === 'top') return;
+      each(it[0], function () { if (cannot.indexOf(it[1]) < 0) cannot.push(it[1]); });
+    });
+
+    if (skirtMode) {
+      parseSkirt();
+      return finish();
+    }
 
     /* ---- 否定（「唔要 XX」）---- */
     each(NEG + '\\s*(?:左|右|兩邊|兩個|胸前|胸)?\\s*(?:口袋|貼袋|胸袋|袋)', function () { neg.pocket = true; put('pocket', 'none'); done.push('唔要口袋'); });
@@ -218,17 +240,60 @@
       });
     }
 
+    return finish();
+
+    /* ---- 半截裙 ---- */
+    function parseSkirt() {
+      var SK_LEN = { mini: 42, knee: 58, midi: 72, long: 90 };
+      each(SKIRT_WORDS, function () { });
+      each(NEG + '\\s*(?:開衩|開叉|叉)', function () { neg.slit = true; put('slit', 'none'); done.push('唔要開衩'); });
+      each('窄身|窄裙|鉛筆|收腳|pencil', function () { put('skirtShape', 'pencil'); done.push('窄身裙'); });
+      each('直身|直裙|直腳|straight', function () { put('skirtShape', 'straight'); done.push('直身裙'); });
+      each('A\\s*字(?:裙)?(?:放出)?\\s*(?:' + NUM + ')?|傘裙|A-?line', function (m) {
+        var n = num(m[1]); put('skirtShape', 'aline'); if (n != null) put('skirtFlare', round(n));
+        done.push('A 字裙' + (n != null ? '（每邊放出 ' + c.skirtFlare + ' cm）' : ''));
+      });
+      each('放出\\s*' + NUM, function (m) { put('skirtShape', 'aline'); put('skirtFlare', round(num(m[1]))); });
+      [['迷你|短裙|大髀', 'mini', '短裙'], ['及膝|膝頭|到膝', 'knee', '及膝'], ['中長|小腿|過膝', 'midi', '中長裙'], ['長裙|腳踭|到腳|及地', 'long', '長裙']].forEach(function (L) {
+        each(L[0], function () { put('skirtLenPreset', L[1]); put('skirtLen', SK_LEN[L[1]]); done.push(L[2]); });
+      });
+      each('(?<!開衩|開叉|叉)(?:裙)?長(?:度)?\\s*(?:係|為|=|:|：)?\\s*' + NUM, function (m) {
+        put('skirtLen', round(num(m[1]))); put('skirtLenPreset', 'custom'); done.push('裙長 ' + c.skirtLen + ' cm');
+      });
+      each('(?:裙)?(?:長' + MORE + '|再長)', function () { put('skirtLen', round((c.skirtLen || 58) + 5)); put('skirtLenPreset', 'custom'); done.push('裙長加長至 ' + c.skirtLen + ' cm'); });
+      each('(?:裙)?(?:短' + MORE + '|再短)', function () { put('skirtLen', round(Math.max(30, (c.skirtLen || 58) - 5))); put('skirtLenPreset', 'custom'); done.push('裙長縮短至 ' + c.skirtLen + ' cm'); });
+      if (!neg.slit) {
+        each('(後中|後面|後|前中|前面|前|側邊|側|左邊|右邊)?\\s*(?:開衩|開叉|叉)\\s*(?:長)?\\s*(?:' + NUM + ')?', function (m) {
+          var w = m[1] || '';
+          var v = /前/.test(w) ? 'front' : /側|左|右|侧/.test(w) ? 'side' : 'back';
+          put('slit', v); if (m[2] != null) put('slitLen', round(num(m[2])));
+          done.push({ back: '後中開衩', front: '前中開衩', side: '側開衩' }[v] + (m[2] != null ? ' ' + c.slitLen + ' cm' : ''));
+        });
+      }
+      each('(後中|後面|後|側邊|側|左邊|右邊)\\s*拉鏈|拉鏈\\s*(?:喺|在)?\\s*(後中|後面|後|側邊|側)', function (m) {
+        var w = (m[1] || m[2] || '');
+        var v = /側|左|右|侧/.test(w) ? 'side' : 'back';
+        put('zip', v); done.push(v === 'back' ? '後中拉鏈' : '側拉鏈');
+      });
+      each('腰頭\\s*(?:闊|寬|高)\\s*' + NUM, function (m) { put('bandW', round(num(m[1]))); done.push('腰頭闊 ' + c.bandW + ' cm'); });
+      each('腰頭(?!\\s*(?:闊|寬|高))', function () { });
+      each('(?:鬆|寬|闊)' + MORE, function () { put('easeHip', round((c.easeHip || 4) + 2)); put('easeWaist', round((c.easeWaist || 1) + 1)); done.push('放鬆啲（臀圍 +' + c.easeHip + '）'); });
+      each('(?:緊|窄)' + MORE, function () { put('easeHip', round(Math.max(2, (c.easeHip || 4) - 2))); done.push('收窄啲（臀圍 +' + c.easeHip + '）'); });
+    }
+
+    function finish() {
     // 唔明嘅部份
     var left = '';
     for (var i = 0; i < src.length; i++) left += used[i] ? ' ' : src[i];
     var unknown = left.split(/[，,。.；;、\n!！?？]+/).map(function (seg) {
-      var core = seg.replace(/[\s\d.~～:：=+\-]|cm|厘米|公分|要|想|我|件|衫|衣服|啲|少少|一啲|的|個|个|係|改|做|加|同|和|及|仲有|再|都|唔該|請|请|好|有|啦|呀|吖|喎|嘅|咗|返|多|少|點|点|一|款|整|成|而且|然後|然后|可以|希望|最好|比較|比较|啱啱|就|得|佢|嗰|呢|個|啲|左右|大約|大约|約|约|左|右|面|邊|边|身/g, '');
+      var core = seg.replace(/[\s\d.~～:：=+\-]|cm|厘米|公分|要|想|我|件|衫|衣服|啲|少少|一啲|的|個|个|係|改|做|加|同|和|及|仲有|再|都|唔該|請|请|好|有|啦|呀|吖|喎|嘅|咗|返|多|少|點|点|一|款|整|成|而且|然後|然后|可以|希望|最好|比較|比较|啱啱|就|得|佢|嗰|呢|個|啲|左右|大約|大约|約|约|左|右|面|邊|边|身|裙|半截|條|条/g, '');
       return core.length >= 2 ? seg.trim() : '';
     }).filter(Boolean);
 
     // 去除重覆
     done = done.filter(function (d, i) { return done.indexOf(d) === i; });
     return { set: set, done: done, cannot: cannot, unknown: unknown };
+    }
   }
 
   PM.parseRequest = parseRequest;
