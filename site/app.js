@@ -110,6 +110,9 @@
   const flow = { step: 0, style: null, fabric: null, m: {}, note: "", agree: false, upload: null, scale: 0.22, mirror: false, thumb: null };
   const UPLOAD = { name: "你上傳嘅布料", desc: "電腦示意效果，實際效果會因布料厚薄、花紋大細同位置而有分別", extra: 0 };
   const DEMO_FABRICS = [["img/sw-cats.jpg", "貓咪"], ["img/sw-floral.jpg", "花草"], ["img/sw-snowcat.jpg", "童話"], ["img/sw-embroid.jpg", "刺繡"]];
+  const fabricKeys = s => [...Object.keys(s.photos), ...(s.liveFabrics || [])];
+  // fabric shown by laying it onto the photo (uploaded, or a shop fabric with no photo yet)
+  const isLive = s => !!(s && s.tryon && flow.fabric && (flow.fabric === "upload" || !s.photos[flow.fabric]));
   const fabricInfo = () => flow.fabric === "upload" ? UPLOAD : flow.fabric ? FABRICS[flow.fabric] : null;
 
   const styleOf = () => CUSTOM_STYLES.find(s => s.id === flow.style);
@@ -155,7 +158,7 @@
       return;
     }
     const f = fabricInfo();
-    const isUp = flow.fabric === "upload" && s.tryon;
+    const isUp = isLive(s);
     p.innerHTML = `<div class="pic">${isUp ? `<canvas id="tryCanvas" aria-label="試身效果"></canvas>` : pic((flow.fabric && s.photos[flow.fabric]) || s.cover, s.name)}</div>
       <div class="info">
         <h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3>
@@ -169,8 +172,11 @@
 
   function drawTry() {
     const c = $("#tryCanvas"), s = styleOf();
-    if (!c || !s || !s.tryon || !flow.upload) return;
-    TryOn.render(c, s.tryon, flow.upload, flow.scale, flow.mirror)
+    if (!c || !isLive(s)) return;
+    const up = flow.fabric === "upload";
+    const fb = FABRICS[flow.fabric];
+    if (up && !flow.upload) return;
+    TryOn.render(c, s.tryon, up ? flow.upload : fb.tile, up ? flow.scale : fb.tileScale, up && flow.mirror)
       .then(() => { flow.thumb = TryOn.thumb(c); })
       .catch(() => toast("張相讀唔到，試吓另一張"));
   }
@@ -200,7 +206,7 @@
         ${CUSTOM_STYLES.map(s => `
           <button class="style-opt ${flow.style === s.id ? "on" : ""}" data-style="${s.id}" type="button">
             <div class="thumb">${pic(s.cover, s.name)}</div>
-            <div><h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3><p>${esc(s.desc)}</p><span class="tag">${Object.keys(s.photos).length} 款布料 · ${s.days} 日</span></div>
+            <div><h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3><p>${esc(s.desc)}</p><span class="tag">${fabricKeys(s).length} 款布料 · ${s.days} 日</span></div>
             <div class="price">由 ${money(s.base)}</div>
           </button>`).join("")}
       </div>
@@ -214,11 +220,12 @@
     return `
       <div><h2>揀布料</h2><p class="hint">呢款可以用以下布料。㩒一下，就會顯示用呢款布造出嚟嘅樣。${s.note ? esc(s.note) : ""}</p></div>
       <div class="fabrics">
-        ${Object.keys(s.photos).map(k => {
+        ${fabricKeys(s).map(k => {
           const fb = FABRICS[k];
+          const live = !s.photos[k];
           return `<button class="fabric ${flow.fabric === k ? "on" : ""}" data-fabric="${k}" type="button">
             <div class="swatch">${pic(fb.swatch, fb.name)}</div>
-            <div class="name">${esc(fb.name)}</div>
+            <div class="name">${esc(fb.name)}${live ? ` <span class="tag">新布</span>` : ""}</div>
             <div class="plus">${fb.extra ? "+" + money(fb.extra) : "不另加錢"}</div>
           </button>`;
         }).join("")}
@@ -238,7 +245,7 @@
             </label>
             <label class="check"><input type="checkbox" data-mirror ${flow.mirror ? "checked" : ""}> 鏡像拼接：見到布嘅接駁線先開，適合花草、格仔，人物動物圖案會變對稱</label>` : ""}
         </div>` : ""}
-      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.desc)}。${up ? "落單後我哋會聯絡你，傾布料嘅安排。" : ""}</div>` : ""}
+      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.desc)}。${up ? "落單後我哋會聯絡你，傾布料嘅安排。" : isLive(s) ? "呢塊布未有成品相，圖為電腦示意，以實物為準。" : ""}</div>` : ""}
       <div class="flow-nav">
         <button class="btn ghost" data-prev type="button">上一步</button>
         <button class="btn" data-next type="button" ${flow.fabric ? "" : "disabled"}>下一步：入尺寸</button>
@@ -321,15 +328,15 @@
         flow.style = st.dataset.style;
         // keep fabric only if the new style offers it
         const ns = styleOf();
-        if (!(flow.fabric in ns.photos) && !(flow.fabric === "upload" && ns.tryon)) flow.fabric = null;
+        if (!fabricKeys(ns).includes(flow.fabric) && !(flow.fabric === "upload" && ns.tryon)) flow.fabric = null;
       }
       renderFlow();
       return;
     }
     const fb = t.closest("[data-fabric]");
-    if (fb) { flow.fabric = fb.dataset.fabric; renderFlow(); return; }
+    if (fb) { flow.fabric = fb.dataset.fabric; flow.thumb = null; renderFlow(); return; }
     const demo = t.closest("[data-demo]");
-    if (demo) { flow.upload = demo.dataset.demo; flow.fabric = "upload"; renderFlow(); return; }
+    if (demo) { flow.upload = demo.dataset.demo; flow.fabric = "upload"; flow.thumb = null; renderFlow(); return; }
     if (t.closest(".fabric.upload") && flow.upload && flow.fabric !== "upload" && !t.matches("input")) {
       // already uploaded once: tapping selects it again; long way to re-upload is via the file picker
       flow.fabric = "upload"; renderFlow(); e.preventDefault(); return;
@@ -340,7 +347,7 @@
       const s = styleOf();
       addToCart({
         custom: true, name: s.name + "（訂製）", price: priceOf(),
-        img: flow.fabric === "upload" ? (flow.thumb || s.tryon.base) : s.photos[flow.fabric],
+        img: isLive(s) ? (flow.thumb || s.tryon.base) : s.photos[flow.fabric],
         lines: [fabricInfo().name, ...s.measures.map(k => `${MEASURES[k].label}${flow.m[k]}`)],
       });
       toast("已加入購物袋");
@@ -376,7 +383,7 @@
     const t = e.target;
     if (!t.matches("[data-upload]") || !t.files[0]) return;
     try {
-      flow.upload = await readFabric(t.files[0]);
+      flow.upload = await readFabric(t.files[0]); flow.thumb = null;
       flow.fabric = "upload";
       renderFlow();
     } catch { toast("張相讀唔到，試吓另一張"); }

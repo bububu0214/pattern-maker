@@ -2,7 +2,8 @@
 // Prices, lead times and stock are placeholders — change them to the real ones.
 
 const FABRICS = {
-  snowcat: { name: "童話貓貓印花", desc: "深藍底，白雪公主貓貓故事印花，棉質", extra: 0, swatch: "img/sw-snowcat.jpg" },
+  snowcat: { name: "白雪公主貓貓", desc: "深藍底，白雪公主同七個小矮人都係貓貓，棉質", extra: 0, swatch: "img/sw-snowcat.jpg", tile: "img/fab-snowwhite.jpg", tileScale: 0.27 },
+  alice:   { name: "愛麗絲貓貓（黑）", desc: "黑底，愛麗絲夢遊仙境貓貓、時鐘、撲克牌同蘑菇印花，棉質", extra: 0, swatch: "img/sw-alice.jpg", tile: "img/fab-alice.jpg", tileScale: 0.28 },
   embroid: { name: "藍花刺繡蕾絲", desc: "米白棉麻底，藍色花朵刺繡配菱形蕾絲", extra: 120, swatch: "img/sw-embroid.jpg" },
   cats:    { name: "手繪貓咪印花", desc: "白底，紅藍手繪貓咪，棉質", extra: 0, swatch: "img/sw-cats.jpg" },
   stripe:  { name: "粉藍條紋刺繡", desc: "粉藍細條紋，白色小花刺繡", extra: 80, swatch: "img/sw-stripe.jpg" },
@@ -25,12 +26,14 @@ const MEASURES = {
 
 // Section 1: styles the shop designs, customer picks fabric + enters size.
 // photos: one photo per fabric, so the preview changes when the customer picks a fabric.
+// liveFabrics: fabrics with no photo yet; shown by laying the fabric onto the try-on photo.
 const CUSTOM_STYLES = [
   {
     id: "collar-blouse", en: "Peter Pan Collar Blouse", name: "小圓領拼布恤衫", base: 680, days: "21–28",
     desc: "前幅用印花或刺繡布，袖用素色布拼接，袖口收褶。",
     cover: "img/blouse-collage.jpg",
     tryon: { key: "blouse", base: "img/blouse-embroid.jpg", part: "前幅" },
+    liveFabrics: ["alice"],
     photos: { snowcat: "img/blouse-snowcat.jpg", embroid: "img/blouse-embroid.jpg", cats: "img/blouse-cats.jpg", stripe: "img/blouse-stripe.jpg", floral: "img/blouse-floral.jpg" },
     note: "領型、口袋同袖嘅拼色會按布料配搭，以相片為準。",
     measures: ["height", "shoulder", "chest", "sleeve", "top_len"],
@@ -40,6 +43,7 @@ const CUSTOM_STYLES = [
     desc: "短身 V 領，三粒金屬鈕，內裡用黑色棉布。",
     cover: "img/plaid-vest.jpg",
     tryon: { key: "vest", base: "img/plaid-vest.jpg", part: "成件" },
+    liveFabrics: ["snowcat", "alice"],
     photos: { plaid: "img/plaid-vest.jpg", denim: "img/denim-vest.jpg" },
     measures: ["height", "shoulder", "chest", "waist", "top_len"],
   },
