@@ -12,10 +12,11 @@
     'waistToHip', 'armLen', 'upperArm', 'wrist',
     'easeBust', 'easeWaist', 'easeHip', 'easeNeck', 'easeArmhole', 'sa',
     'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext', 'collarW', 'cuffH',
-    'skirtLen', 'skirtFlare', 'slitLen', 'bandW', 'hemSa'];
+    'skirtLen', 'skirtFlare', 'slitLen', 'bandW', 'hemSa',
+    'yokeDepthB', 'yokeDepthF', 'yokeFull', 'sleevePuff', 'sleeveGather', 'ruffleW', 'ruffleRatio', 'skirtRatio'];
   var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit', 'collar', 'pocket', 'cuff',
-    'garment', 'skirtShape', 'skirtLenPreset', 'slit', 'zip'];
-  var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing'];
+    'garment', 'skirtShape', 'skirtLenPreset', 'slit', 'zip', 'yoke', 'yokeFullType', 'ruffle'];
+  var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing', 'princess'];
   var defaults = readForm();
 
   /* ---------- 預設值對照 ---------- */
@@ -59,6 +60,12 @@
     form.elements.cuff.disabled = !(v.sleeve === 'long' || v.sleeve === 'elbow');
     form.elements.cuffH.disabled = form.elements.cuff.disabled || v.cuff === 'none';
     form.elements.skirtFlare.disabled = v.skirtShape !== 'aline';
+    form.elements.skirtRatio.disabled = v.skirtShape !== 'gathered';
+    form.elements.yokeDepthB.disabled = !(v.yoke === 'back' || v.yoke === 'both');
+    form.elements.yokeDepthF.disabled = !(v.yoke === 'front' || v.yoke === 'both');
+    form.elements.yokeFull.disabled = form.elements.yokeFullType.disabled = v.yoke === 'none';
+    form.elements.ruffleW.disabled = form.elements.ruffleRatio.disabled = v.ruffle === 'none';
+    form.elements.sleevePuff.disabled = form.elements.sleeveGather.disabled = v.sleeve === 'none';
     form.elements.slitLen.disabled = v.slit === 'none';
     // 上衣／半截裙：只顯示用得着嘅欄位
     var skirt = v.garment === 'skirt';
@@ -66,7 +73,7 @@
     Array.prototype.forEach.call(form.querySelectorAll('.only-skirt'), function (el) { el.hidden = !skirt; });
     updateTotal();
   }
-  ['skirtShape', 'slit'].forEach(function (k) { form.elements[k].addEventListener('change', syncControls); });
+  ['skirtShape', 'slit', 'yoke', 'ruffle'].forEach(function (k) { form.elements[k].addEventListener('change', syncControls); });
   form.elements.garment.addEventListener('change', function () {
     if (form.elements.garment.value === 'skirt') { setVal('easeWaist', 1); setVal('easeHip', 4); }
     else { var e = FIT_EASE[form.elements.fit.value]; Object.keys(e).forEach(function (k) { setVal(k, e[k]); }); }
@@ -128,6 +135,8 @@
     };
     var ease = { bust: v.easeBust, waist: v.easeWaist, hip: v.easeHip, neck: v.easeNeck, armhole: v.easeArmhole };
     var style = {
+      yoke: v.yoke, yokeFullness: v.yokeFull > 0 ? v.yokeFullType : 'none', princess: v.princess,
+      puffSleeve: v.sleevePuff > 0, sleeveHemGather: v.sleeveGather > 0, ruffle: v.ruffle,
       neckline: v.neckline, neckWiden: v.neckWiden || 0, neckDropF: v.neckDropF || 0, neckDropB: v.neckDropB || 0,
       hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0,
       sleeve: v.sleeve, sleeveLen: v.sleeveLen || 0, fit: v.fit,
@@ -135,7 +144,11 @@
       facing: v.facing, collar: v.collar, collarW: v.collarW || 7, pocket: v.pocket,
       cuff: form.elements.cuff.disabled ? 'none' : v.cuff, cuffH: v.cuffH || 5,
       garment: v.garment, skirtShape: v.skirtShape, skirtLen: v.skirtLen || 58, skirtFlare: v.skirtFlare || 6,
-      slit: v.slit, slitLen: v.slitLen || 18, zip: v.zip, bandW: v.bandW || 3, hemSa: isNaN(v.hemSa) ? v.sa : v.hemSa
+      slit: v.slit, slitLen: v.slitLen || 18, zip: v.zip, bandW: v.bandW || 3, hemSa: isNaN(v.hemSa) ? v.sa : v.hemSa,
+      yoke: v.yoke, yokeDepthB: v.yokeDepthB || 9, yokeDepthF: v.yokeDepthF || 7, yokeFull: v.yoke === 'none' ? 0 : (v.yokeFull || 0),
+      yokeFullType: v.yokeFullType, princess: v.princess,
+      sleevePuff: v.sleeve === 'none' ? 0 : (v.sleevePuff || 0), sleeveGather: v.sleeve === 'none' ? 0 : (v.sleeveGather || 0),
+      ruffle: v.ruffle, ruffleW: v.ruffleW || 6, ruffleRatio: v.ruffleRatio || 1.8, skirtRatio: v.skirtRatio || 1.6
     };
     var res = PM.draft(m, ease, style);
     var model = PM.layout(res, { sa: v.sa, dims: v.dims });
@@ -177,7 +190,7 @@
     if (i.garment === 'skirt') {
       var sr = [
         ['成品腰圍（連放鬆量）', i.waistTotal, v.waist + v.easeWaist],
-        ['成品臀圍（連放鬆量）', i.hipTotal, v.hip + v.easeHip],
+        ['成品臀圍（連放鬆量）', i.hipTotal, i.hipTotal == null ? null : v.hip + v.easeHip],
         ['下擺圍', i.hemTotal],
         ['裙長（腰下，唔計腰頭）', i.len],
         ['後腰褶 / 前腰褶（每片）', null, null, i.dartsBack + ' / ' + i.dartsFront],
@@ -260,7 +273,8 @@
     sleeve: { none: 'sleeveless', short: 'short sleeve', elbow: '3/4 sleeve', long: 'long sleeve' },
     fit: { fitted: 'fitted', regular: 'regular fit', loose: 'loose' }
   };
-  var SK_NAMES = { straight: 'straight skirt', pencil: 'pencil skirt', aline: 'A-line skirt' };
+  var SK_NAMES = { straight: 'straight skirt', pencil: 'pencil skirt', aline: 'A-line skirt', gathered: 'gathered skirt',
+    pleated: 'pleated skirt', halfcircle: 'half-circle skirt', circle: 'circle skirt' };
   function styleLine(v) {
     if (v.garment === 'skirt') {
       return SK_NAMES[v.skirtShape] + ', length ' + v.skirtLen + ' cm from waist' +
@@ -269,7 +283,10 @@
     return NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] + ', ' + NAMES.fit[v.fit] +
       ', length ' + (v.hemLen >= 0 ? '+' : '') + v.hemLen + ' from waist' + (v.hemShape === 'aline' ? ', A-line' : '') +
       (v.opening ? ', front opening' : '') + (v.collar === 'peterpan' ? ', Peter Pan collar' : '') +
-      (v.pocket !== 'none' ? ', patch pocket' : '') + (v.cuff === 'band' && !form.elements.cuff.disabled ? ', cuffs' : '');
+      (v.pocket !== 'none' ? ', patch pocket' : '') + (v.cuff === 'band' && !form.elements.cuff.disabled ? ', cuffs' : '') +
+      (v.yoke !== 'none' ? ', ' + v.yoke + ' yoke' + (v.yokeFull > 0 ? ' with ' + (v.yokeFullType === 'pleat' ? 'pleat' : 'gathers') : '') : '') +
+      (v.princess ? ', princess seams' : '') + (v.sleevePuff > 0 && v.sleeve !== 'none' ? ', puff sleeves' : '') +
+      (v.sleeveGather > 0 && v.sleeve !== 'none' ? ', gathered sleeve hem' : '') + (v.ruffle !== 'none' ? ', ' + v.ruffle + ' ruffle' : '');
   }
 
   document.getElementById('dlSvg').onclick = function () {
@@ -441,10 +458,15 @@
     ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline", "sleeve": "none|short|elbow|long",',
     ' "fit": "fitted|regular|loose", "frontOpening": false, "collar": "none|peterpan|other",',
     ' "pocket": "none|left|right|both", "cuff": "none|band",',
-    ' "skirtShape": "straight|pencil|aline", "skirtLength": "mini|knee|midi|long", "slit": "none|back|front|side", "zip": "back|side",',
+    ' "yoke": "none|back|front|both", "yokeFullness": "none|gather|pleat", "princess": false, "puffSleeve": false, "sleeveHemGather": false,',
+    ' "ruffle": "none|hem|sleeve|neck",',
+    ' "skirtShape": "straight|pencil|aline|gathered|pleated|halfcircle|circle", "skirtLength": "mini|knee|midi|long", "slit": "none|back|front|side", "zip": "back|side",',
     ' "fabricTip": "...", "notes": "..."}',
     'For a skirt, fill the skirt fields (top fields may be anything); for a top, the skirt fields may be anything.',
-    'Skirt definitions: straight = straight from hip to hem; pencil = narrows towards the hem; aline = flares out. skirtLength: mini = mid-thigh or shorter, knee = around the knee, midi = mid-calf, long = ankle.',
+    '- yoke = a separate shoulder/upper-back panel (seam across the upper back or front); yokeFullness = gathers or a centre box pleat below the yoke.',
+    '- princess = vertical princess seams over the bust/shoulder blade instead of darts; puffSleeve = gathered, puffed sleeve cap; sleeveHemGather = sleeve gathered at the hem or into the cuff (bishop/lantern sleeve).',
+    '- ruffle = a gathered ruffle strip sewn to the hem, sleeve hem or neckline.',
+    'Skirt definitions: straight = straight from hip to hem; pencil = narrows towards the hem; aline = flares out; gathered = gathered at the waist (dirndl); pleated = knife pleats all round; halfcircle / circle = half or full circle skirt. skirtLength: mini = mid-thigh or shorter, knee = around the knee, midi = mid-calf, long = ankle.',
     'slit = a vent/opening at the hem (back, front centre or side seam). zip = where the zip is (back centre or side; default back). The skirt always has a waistband and waist darts.',
     'Definitions:',
     '- neckWidth = how far the neckline opens towards the shoulders (narrow = sits at the base of the neck). With a collar, describe the neckline under the collar (usually round, narrow, high).',
@@ -457,19 +479,21 @@
     '- collar: peterpan = a flat collar with rounded front ends; other = any other collar (shirt collar with stand, notched/lapel, mandarin, shawl, sailor, bow, etc.).',
     '- pocket: patch pocket on the chest, as seen by the wearer (left = wearer\'s left, which appears on the RIGHT of a front-facing photo).',
     '- cuff: band = sleeve finished with a cuff band (usually with gathers or pleats and a button); none = plain hem.',
-    'The generator CAN make: for tops the necklines above, length, straight or A-line hem, sleeves, fit, front button opening with facing, Peter Pan collar, chest patch pockets, cuffs;',
-    'for skirts straight/pencil/A-line shapes, any length, a slit at the back, front or side, back or side zip, waistband, waist darts.',
+    'The generator CAN make: for tops the necklines above, length, straight or A-line hem, sleeves, fit, front button opening with facing, Peter Pan collar, chest patch pockets, cuffs,',
+    'yokes (with gathers or a box pleat below), princess seams, puff sleeves, gathered sleeve hems, ruffles at hem/sleeve/neck;',
+    'for skirts straight/pencil/A-line/gathered/pleated/half-circle/circle, any length, a slit at the back, front or side, back or side zip, waistband, waist darts.',
     'summary: one short sentence in Traditional Chinese (Cantonese, Hong Kong style) describing the garment.',
     'fabricTip: in Traditional Chinese (Cantonese), ONLY if the garment mixes fabrics or colours by area: which pattern pieces to cut in which fabric (pieces: 前片, 後片, 袖, 衣領, 袖頭, 貼袋), e.g. "袖同袖頭用牛仔布，前後片用印花布". Otherwise "". Never mention prints or colours otherwise; they do not change the pattern.',
-    'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, gathers, ruffles, princess seams, yokes, asymmetry, wrap fronts, pocket flaps, side pockets, skirt pleats, yoke or panels in a skirt, belt loops, lining). Do not list anything it can make, nor fabric/print/colour. "" if none.',
-    'fabricTip pieces for skirts: 前裙片, 後裙片, 腰頭.',
+    'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, asymmetry, wrap fronts, pocket flaps, side pockets, smocking, tiers, mermaid/fishtail, skirt yokes, belt loops, lining). Do not list anything it can make, nor fabric/print/colour. "" if none.',
+    'fabricTip pieces for skirts: 前裙片, 後裙片, 腰頭. Extra top pieces when used: 後育克, 前育克, 前中片, 前側片, 後中片, 後側片, 荷葉邊.',
     'If the image shows neither a top nor a skirt (e.g. trousers, not a garment), set "isTop": false and "garment": "none", and explain in "summary".',
-    'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "totalLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null, "skirtLen": null, "skirtFlare": null, "slitLen": null, "bandW": null}',
+    'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "totalLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null, "skirtLen": null, "skirtFlare": null, "slitLen": null, "bandW": null, "yokeDepthB": null, "ruffleW": null}',
     'and "requestReply": "". Put a number (cm) in "cm" ONLY when the user\'s request asks for a specific or relative size; otherwise null.',
     'cm meanings: neckWiden = neckline widened per side along the shoulder; neckDropF / neckDropB = front / back neckline lowered from the base of the neck (negative raises it);',
     'hemLen = length below the waistline (negative = above the waist); totalLen = overall garment length at centre back from the nape (back neck point) to the hem.',
     'When the user gives a garment length (e.g. 衫長 45cm) without saying it is measured from the waist, put it in totalLen (NOT hemLen); the generator converts it. Set the length category to match it.',
     'sleeveLen = sleeve length from the shoulder point; flare = A-line flare per side seam at the hem; collarW = collar width; cuffH = cuff height.',
+    'yokeDepthB = back yoke depth from the nape; ruffleW = ruffle width.',
     'Skirt cm: skirtLen = skirt length from the waistline to the hem (for a skirt, a plain length like 裙長 60cm goes here); skirtFlare = A-line flare per side seam; slitLen = slit length; bandW = waistband width.',
     'The USER REQUEST (if any) has priority over the images. Relative requests ("longer", "a bit wider") change the CURRENT SETTINGS by a sensible amount (usually 2-5 cm).',
     'With no images, start from the CURRENT SETTINGS and change only what the request asks for (keep every other field as it is now).',
@@ -512,13 +536,13 @@
   var lastRequest = '';
   function num(v, lo, hi) { return typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null; }
 
-  var SK_ZH = { straight: '直身裙', pencil: '窄身裙', aline: 'A 字裙' };
+  var SK_ZH = { straight: '直身裙', pencil: '窄身裙', aline: 'A 字裙', gathered: '碎褶裙', pleated: '百褶裙', halfcircle: '半圓裙', circle: '全圓裙' };
   var SLIT_ZH = { none: '無開衩', back: '後中開衩', front: '前中開衩', side: '側開衩' };
   function applySkirtAI(r) {
     var cm = r.cm || {};
     setVal('garment', 'skirt');
     setVal('easeWaist', 1); setVal('easeHip', 4);
-    var shape = pick(r.skirtShape, ['straight', 'pencil', 'aline'], 'straight');
+    var shape = pick(r.skirtShape, ['straight', 'pencil', 'aline', 'gathered', 'pleated', 'halfcircle', 'circle'], 'straight');
     var lenP = pick(r.skirtLength, ['mini', 'knee', 'midi', 'long'], 'knee');
     var slit = pick(r.slit, ['none', 'back', 'front', 'side'], 'none');
     setVal('skirtShape', shape); setVal('skirtLenPreset', lenP); setVal('skirtLen', SKIRT_LEN[lenP]);
@@ -574,9 +598,18 @@
     setVal('pocket', pick(r.pocket, ['none', 'left', 'right', 'both'], 'none'));
     var cuff = r.cuff === 'band' && (sleeve === 'long' || sleeve === 'elbow') ? 'band' : 'none';
     setVal('cuff', cuff);
+    var yoke = pick(r.yoke, ['none', 'back', 'front', 'both'], 'none');
+    var yf = pick(r.yokeFullness, ['none', 'gather', 'pleat'], 'none');
+    setVal('yoke', yoke);
+    setVal('yokeFull', yoke !== 'none' && yf !== 'none' ? (yf === 'pleat' ? 6 : 10) : 0);
+    if (yf !== 'none') setVal('yokeFullType', yf);
+    form.elements.princess.checked = !!r.princess && fit !== 'loose';
+    setVal('sleevePuff', r.puffSleeve && sleeve !== 'none' ? 5 : 0);
+    setVal('sleeveGather', r.sleeveHemGather && sleeve !== 'none' ? 8 : 0);
+    setVal('ruffle', pick(r.ruffle, ['none', 'hem', 'sleeve', 'neck'], 'none'));
     // 要求入面有具體尺寸就用
     var cm = r.cm || {};
-    var lim = { neckWiden: [0, 10], neckDropF: [-5, 25], neckDropB: [0, 20], hemLen: [-15, 90], sleeveLen: [0, 80], flare: [0, 30], collarW: [3, 15], cuffH: [2, 12] };
+    var lim = { neckWiden: [0, 10], neckDropF: [-5, 25], neckDropB: [0, 20], hemLen: [-15, 90], sleeveLen: [0, 80], flare: [0, 30], collarW: [3, 15], cuffH: [2, 12], yokeDepthB: [3, 25], ruffleW: [2, 30] };
     var tl = num(cm.totalLen, 15, 140);
     if (tl != null) cm.hemLen = Math.max(-15, Math.min(90, tl - v.backLen));
     Object.keys(lim).forEach(function (k) {
@@ -593,7 +626,11 @@
       (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
       '<p>已設定：' + ZH.neckline[neckline] + '、' + (num(cm.hemLen, -15, 90) != null ? '衫總長 ' + form.elements.totalLen.value + ' cm（腰下 ' + form.elements.hemLen.value + ' cm）' : ZH.length[length]) + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
       ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
-      (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') + '</p>' +
+      (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') +
+      ({ back: '、後育克', front: '、前育克', both: '、前後育克' }[yoke] || '') + (yoke !== 'none' && yf !== 'none' ? (yf === 'pleat' ? '（中間褶）' : '（碎褶）') : '') +
+      (form.elements.princess.checked ? '、公主線' : '') + (r.puffSleeve && sleeve !== 'none' ? '、泡泡袖' : '') +
+      (r.sleeveHemGather && sleeve !== 'none' ? '、袖口碎褶' : '') +
+      ({ hem: '、下擺荷葉邊', sleeve: '、袖口荷葉邊', neck: '、領口荷葉邊' }[form.elements.ruffle.value] || '') + '</p>' +
       (r.fabricTip ? '<p>🧵 用布：' + esc(r.fabricTip) + '</p>' : '') +
       (r.collar === 'other' ? '<p>⚠️ 呢款衣領暫時做唔到，紙樣冇衣領，可以自己另外加。</p>' : '') +
       (r.notes ? '<p>⚠️ 未能做到嘅細節：' + esc(r.notes) + '</p>' : '') +

@@ -42,7 +42,13 @@
             <option value="straight">直身裙</option>
             <option value="pencil">窄身（鉛筆）裙</option>
             <option value="aline">A 字裙</option>
+            <option value="gathered">碎褶裙</option>
+            <option value="pleated">百褶裙（順褶）</option>
+            <option value="halfcircle">半圓裙</option>
+            <option value="circle">全圓裙（太陽裙）</option>
           </select></label>
+        <label class="only-skirt">碎褶倍數 <input type="number" name="skirtRatio" step="0.1" min="1.2" max="3" value="1.6">
+          <small>碎褶裙：布闊 = 臀圍 × 倍數</small></label>
         <label class="only-skirt">裙長
           <select name="skirtLenPreset">
             <option value="mini">短裙（大髀中）</option>
@@ -139,6 +145,40 @@
           </select>
           <small>袖頭只適用於長袖／七分袖</small></label>
         <label class="only-top">袖頭闊 <input type="number" name="cuffH" step="0.5" min="2" max="12" value="5"> <span>cm</span></label>
+        <p class="sub2 only-top">設計細節</p>
+        <label class="only-top">育克
+          <select name="yoke">
+            <option value="none">無</option>
+            <option value="back">後育克</option>
+            <option value="front">前育克</option>
+            <option value="both">前後育克</option>
+          </select></label>
+        <label class="only-top">後育克深 <input type="number" name="yokeDepthB" step="0.5" min="3" max="25" value="9"> <span>cm</span>
+          <small>由後頸點向下</small></label>
+        <label class="only-top">前育克深 <input type="number" name="yokeDepthF" step="0.5" min="3" max="20" value="7"> <span>cm</span>
+          <small>由側頸點向下</small></label>
+        <label class="only-top">育克下加闊 <input type="number" name="yokeFull" step="0.5" min="0" max="40" value="0"> <span>cm</span>
+          <small>0 = 唔加；全件後幅（或前幅）加幾多</small></label>
+        <label class="only-top">加闊做法
+          <select name="yokeFullType">
+            <option value="gather">碎褶</option>
+            <option value="pleat">中間褶（工字褶）</option>
+          </select></label>
+        <label class="chk only-top"><input type="checkbox" name="princess"> 公主線（前後分中片、側片）</label>
+        <label class="only-top">泡泡袖 <input type="number" name="sleevePuff" step="0.5" min="0" max="20" value="0"> <span>cm</span>
+          <small>袖山加幾多收碎褶；0 = 普通袖</small></label>
+        <label class="only-top">袖口碎褶 <input type="number" name="sleeveGather" step="0.5" min="0" max="40" value="0"> <span>cm</span>
+          <small>袖口加闊幾多收碎褶（燈籠袖）</small></label>
+        <label class="only-top">荷葉邊
+          <select name="ruffle">
+            <option value="none">無</option>
+            <option value="hem">下擺</option>
+            <option value="sleeve">袖口</option>
+            <option value="neck">領口</option>
+          </select></label>
+        <label class="only-top">荷葉邊闊 <input type="number" name="ruffleW" step="0.5" min="2" max="30" value="6"> <span>cm</span></label>
+        <label class="only-top">荷葉邊倍數 <input type="number" name="ruffleRatio" step="0.1" min="1" max="3" value="1.8">
+          <small>長度 = 縫位長度 × 倍數（收碎褶）</small></label>
       </fieldset>
 
       <fieldset>
@@ -217,6 +257,7 @@
   <script src="js/geom.js"></script>
   <script src="js/draft.js"></script>
   <script src="js/draft-skirt.js"></script>
+  <script src="js/modify.js"></script>
   <script src="js/layout.js"></script>
   <script src="js/export-svg.js"></script>
   <script src="js/export-dxf.js"></script>

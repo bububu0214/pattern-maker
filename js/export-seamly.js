@@ -181,6 +181,7 @@
       facing: ['Front facing', 'E', 'H'], cuff: ['Cuff', 'F', 'U'], pocket: ['Pocket', 'G', 'P'],
       skirtBack: ['Skirt back', 'A', 'B'], skirtFront: ['Skirt front', 'B', 'F'], band: ['Waistband', 'C', 'W']
     };
+    var pieceNo = 0;
     res.pieces.forEach(function (pc) {
       var m = pc.mirror ? -1 : 1;
       var all = [];
@@ -188,7 +189,11 @@
       var xs = all.map(function (p) { return m * p.x; });
       var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
       var dx = cursor - x0;
-      var t = titles[pc.key];
+      var t = titles[pc.key] || [
+        pc.en.toLowerCase().replace(/\b\w/g, function (c) { return c.toUpperCase(); }),
+        String.fromCharCode(72 + (pieceNo % 18)), 'Q' + String.fromCharCode(65 + pieceNo)
+      ];
+      pieceNo++;
       addPiece(pc, function (p) { return P(m * p.x + dx, p.y); }, t[2], t[0], t[1]);
       cursor += (x1 - x0) + 8;
     });

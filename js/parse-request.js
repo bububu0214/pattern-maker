@@ -41,12 +41,11 @@
 
   // 做唔到嘅設計
   var CANNOT = [
-    ['育克|膊頭拼|上背橫駁|背駁', '育克（上背橫駁）'], ['碎褶|打褶|皺褶|抽褶', '碎褶'], ['泡泡袖|燈籠袖|蓬蓬袖', '泡泡袖'],
-    ['荷葉', '荷葉邊'], ['公主線', '公主線'], ['不對稱|唔對稱', '不對稱設計'], ['交叉|包身|綁帶|綁帶', '交叉／綁帶設計'],
+    ['不對稱|唔對稱', '不對稱設計'], ['交叉|包身|綁帶|綁帶', '交叉／綁帶設計'],
     ['袋蓋', '袋蓋'], ['側袋|插袋|褲袋', '側袋'], ['蝴蝶結', '蝴蝶結'], ['流蘇|毛邊', '流蘇／毛邊'],
     ['恤衫領|襯衫領|翻領|企領|立領|中式領|唐裝領|西裝領|水手領|海軍領|大翻領', '呢款衣領'], ['連帽|帽', '帽'],
     ['拉鏈|zip', '拉鏈（可以用前中開胸加鈕代替）', 'top'], ['開叉|開衩|叉位', '下擺開叉', 'top'], ['腰帶|腰頭', '腰帶', 'top'],
-    ['蕾絲|花邊', '花邊'], ['百褶|打褶裙|褶裙|魚尾|裙褶', '裙褶／魚尾'], ['褲耳|皮帶耳', '褲耳'], ['裡布|裏布|內裡', '裡布']
+    ['蕾絲|花邊', '花邊'], ['魚尾', '魚尾裙'], ['層層|蛋糕裙|分層', '分層裙'], ['縮骨|打揽|smock', '縮骨（smocking）'], ['褲耳|皮帶耳', '褲耳'], ['裡布|裏布|內裡', '裡布']
   ];
 
   function parseRequest(text, cur) {
@@ -231,6 +230,44 @@
     }
     if (!neg.facing) each('(?<!唔要|不要|冇|無)貼邊', function () { put('facing', true); });
 
+    /* ---- 設計細節：育克、加褶、公主線、泡泡袖、荷葉邊 ---- */
+    var yb = false, yf = false;
+    each('前後(?:都有)?育克|兩邊育克', function () { yb = true; yf = true; });
+    each('(?<!前)後育克|背育克|後膊頭拼|背駁', function () { yb = true; });
+    each('前育克', function () { yf = true; });
+    each('(?<!前|後|背)育克|膊頭拼|上背橫駁', function () { if (!yf) yb = true; });
+    if (yb || yf) {
+      var yv = yb && yf ? 'both' : yf ? 'front' : 'back';
+      if (c.yoke && c.yoke !== 'none' && c.yoke !== yv) yv = 'both';
+      put('yoke', yv); done.push({ back: '後育克', front: '前育克', both: '前後育克' }[yv]);
+    }
+    each('育克\\s*(?:深|高|闊)\\s*' + NUM, function (m) { put('yokeDepthB', round(num(m[1]))); if (!c.yoke || c.yoke === 'none') put('yoke', 'back'); done.push('後育克深 ' + c.yokeDepthB + ' cm'); });
+    each('公主線|princess', function () { put('princess', true); if (c.fit === 'loose') setFit('regular'); done.push('公主線'); });
+    each('泡泡袖|蓬蓬袖|燈籠袖|puff', function (m) {
+      if (!c.sleeve || c.sleeve === 'none') { put('sleeve', 'short'); put('sleeveLen', sleeveDefault('short')); }
+      put('sleevePuff', 5); if (/燈籠|灯笼/.test(m[0])) put('sleeveGather', 8);
+      done.push(/燈籠|灯笼/.test(m[0]) ? '燈籠袖' : '泡泡袖');
+    });
+    each('袖口(?:收)?(?:碎褶|皺|抽褶|收褶)', function () { if (c.sleeve !== 'none') { put('sleeveGather', 8); done.push('袖口碎褶'); } });
+    each('(?:工字褶|中間褶|箱褶|box\\s*pleat)', function () {
+      if (!c.yoke || c.yoke === 'none') put('yoke', 'back');
+      put('yokeFull', 6); put('yokeFullType', 'pleat'); done.push('育克下中間褶');
+    });
+    each('(?<!袖口|袖口收|袖山)(?:碎褶|皺褶|抽褶|gather)', function () {
+      if (c.sleeveGather && /袖口/.test(src) && !/育克/.test(src)) return;
+      if (!c.yoke || c.yoke === 'none') put('yoke', 'back');
+      put('yokeFull', 10); put('yokeFullType', 'gather'); done.push('育克下碎褶');
+    });
+    each(NEG + '\\s*荷葉', function () { neg.ruffle = true; put('ruffle', 'none'); done.push('唔要荷葉邊'); });
+    if (!neg.ruffle) {
+      each('(下擺|衫腳|袖口|袖|領口|領)?\\s*(?:加)?\\s*荷葉(?:邊)?', function (m) {
+        var w = m[1] || '';
+        var v = /袖/.test(w) ? 'sleeve' : /領|领/.test(w) ? 'neck' : 'hem';
+        put('ruffle', v); done.push({ hem: '下擺荷葉邊', sleeve: '袖口荷葉邊', neck: '領口荷葉邊' }[v]);
+      });
+      each('荷葉(?:邊)?\\s*(?:闊|寬)\\s*' + NUM, function (m) { put('ruffleW', round(num(m[1]))); });
+    }
+
     /* ---- 口袋 ---- */
     if (!neg.pocket) {
       each('(兩邊|兩個|雙|左右|左|右)?\\s*(?:邊|胸|面|胸前)?\\s*(?<!插|側|褲)(?:口袋|貼袋|胸袋|袋|pocket)(?!蓋)', function (m) {
@@ -248,6 +285,10 @@
       each(SKIRT_WORDS, function () { });
       each(NEG + '\\s*(?:開衩|開叉|叉)', function () { neg.slit = true; put('slit', 'none'); done.push('唔要開衩'); });
       each('窄身|窄裙|鉛筆|收腳|pencil', function () { put('skirtShape', 'pencil'); done.push('窄身裙'); });
+      each('碎褶|皺褶|抽褶|gather', function () { put('skirtShape', 'gathered'); done.push('碎褶裙'); });
+      each('百褶|順褶|(?<!碎)褶裙|pleat', function () { put('skirtShape', 'pleated'); done.push('百褶裙'); });
+      each('全圓|太陽裙|circle', function () { put('skirtShape', 'circle'); done.push('全圓裙'); });
+      each('半圓', function () { put('skirtShape', 'halfcircle'); done.push('半圓裙'); });
       each('直身|直裙|直腳|straight', function () { put('skirtShape', 'straight'); done.push('直身裙'); });
       each('A\\s*字(?:裙)?(?:放出)?\\s*(?:' + NUM + ')?|傘裙|A-?line', function (m) {
         var n = num(m[1]); put('skirtShape', 'aline'); if (n != null) put('skirtFlare', round(n));

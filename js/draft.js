@@ -46,7 +46,19 @@
     collarW: 7,         // 領闊（cm）
     pocket: 'none',     // none | left | right | both（胸前貼袋，著衫者計）
     cuff: 'none',       // none | band 袖頭（長袖／七分袖用）
-    cuffH: 5            // 袖頭闊（完成，cm）
+    cuffH: 5,           // 袖頭闊（完成，cm）
+    // 通用設計工具
+    yoke: 'none',       // none | back | front | both 育克
+    yokeDepthB: 9,      // 後育克：由後頸點向下（cm）
+    yokeDepthF: 7,      // 前育克：由側頸點水平向下（cm）
+    yokeFull: 0,        // 育克下加闊（全件後幅計，cm）
+    yokeFullType: 'gather', // gather 碎褶 | pleat 中間褶
+    princess: false,    // 公主線（有腰褶先用到）
+    sleevePuff: 0,      // 泡泡袖：袖山加幾多 cm 收碎褶
+    sleeveGather: 0,    // 袖口加闊幾多 cm 收碎褶
+    ruffle: 'none',     // none | hem | sleeve | neck 荷葉邊
+    ruffleW: 6,         // 荷葉邊闊
+    ruffleRatio: 1.8    // 荷葉邊長度倍數（收碎褶）
   };
 
   function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
@@ -353,7 +365,7 @@
         label: { p: P(w * 0.5, yB - 7.5) },
         cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), P(cx, yHc)],
         waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW, saEdge: { hem: st.hemSa },
-        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w }
+        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w, G: armMid, L: L }
       };
       pc.dims = [
         { kind: 'dim', a: pc.center[0], b: pc.center[1], side: 'left', zh: (isFront ? '前中長 ' : '後中長 ') + f1(yHc - C.y), en: (isFront ? 'CF ' : 'CB ') + f1(yHc - C.y) },
@@ -395,7 +407,8 @@
     var ahB = cubicLen(bod.armB[0]) + cubicLen(bod.armB[1]);
     var ahF = cubicLen(bod.armF[0]) + cubicLen(bod.armF[1]);
     var AH = ahB + ahF;
-    var h = fit.capH(AH);
+    var puff = Math.max(0, st.sleevePuff || 0);
+    var h = fit.capH(AH) + puff * 0.35;
 
     // 袖山弧（前 = 左邊 −x，後 = 右邊 +x）
     function cap(k) {
@@ -416,7 +429,7 @@
       return { front: front, back: back, Uf: Uf, Ub: Ub, T: T };
     }
     function capLen(c) { return c.front.concat(c.back).reduce(function (s, b) { return s + cubicLen(b); }, 0); }
-    var ks = G.solve(function (k) { return capLen(cap(k)); }, AH + fit.capEase, 0.75, 1.2);
+    var ks = G.solve(function (k) { return capLen(cap(k)); }, AH + fit.capEase + puff, 0.75, 1.6);
     var c = cap(ks.x);
 
     // 剪口位：由夾底量返衣身夾圈下半段長度
@@ -449,16 +462,19 @@
     var cuffLen = m.wrist + 4;           // 袖頭完成長（唔計搭位）
     var pleat = 2.5, nPleat = 2;
     var slitX = 0, pleatPts = [];
+    var gather = Math.max(0, st.sleeveGather || 0);
     if (useCuff) {
-      hemW = Math.min(bicep, cuffLen + nPleat * pleat);
+      hemW = gather > 0 ? cuffLen + gather : Math.min(bicep, cuffLen + nPleat * pleat);
       slitX = hemW / 4;                  // 袖衩喺後半中間
+    } else if (gather > 0) {
+      hemW += gather;
     }
     var hF = P(-hemW / 2, len), hB = P(hemW / 2, len);
     var hemPts = [hB];
     if (useCuff) {
-      // 袖衩 + 兩個褶（褶向袖衩方向倒）
+      // 袖衩 + 兩個褶（褶向袖衩方向倒）；收碎褶就唔做褶
       hemPts.push(P(slitX, len));
-      for (var k = 0; k < nPleat; k++) {
+      for (var k = 0; k < (gather > 0 ? 0 : nPleat); k++) {
         var x0 = slitX - 2.5 - k * (pleat + 1.5);
         pleatPts.push(P(x0, len), P(x0 - pleat, len));
       }
@@ -474,7 +490,11 @@
     ];
     var pc = {
       key: 'sleeve', zh: '袖', en: 'SLEEVE', mirror: false, edges: edges, fold: null, darts: [],
-      guides: [{ pts: [c.Uf, c.Ub], dash: [0.6, 0.3] }].concat(useCuff ? [
+      guides: [{ pts: [c.Uf, c.Ub], dash: [0.6, 0.3] }].concat(puff > 0 ? [
+        { pts: [nF, P(nF.x * 0.5, nF.y * 0.35), P(0, 0.9), P(nB.x * 0.5, nB.y * 0.35), nB].map(function (p) { return P(p.x, p.y + 0.9); }), dash: [0.3, 0.3], zh: '袖山收碎褶', en: 'GATHER' }
+      ] : []).concat(gather > 0 ? [
+        { pts: [P(-hemW / 2 + 1.5, len - 1.2), P(hemW / 2 - 1.5, len - 1.2)], dash: [0.3, 0.3], zh: '袖口收碎褶', en: 'GATHER' }
+      ] : []).concat(useCuff ? [
         { pts: [P(slitX, len), P(slitX, len - 10)], dash: null, zh: '袖衩', en: 'SLIT' }
       ] : []),
       marks: [],
@@ -645,6 +665,77 @@
     return pc;
   }
 
+  /* ---------- 通用設計工具（育克、加褶、公主線、荷葉邊） ---------- */
+  function applyTopMods(st, back, front, warnings) {
+    var M = PM.modify;
+    var backs = [back], fronts = [front];
+    if (st.princess) {
+      if (st.fit === 'loose') warnings.push('寬鬆款冇腰褶，做唔到公主線，已略過。');
+      else {
+        var pb = M.princess(back, { center: ['後中片', 'CENTER BACK'], side: ['後側片', 'SIDE BACK'] });
+        var pf = M.princess(front, { center: ['前中片', 'CENTER FRONT'], side: ['前側片', 'SIDE FRONT'] });
+        if (pb) backs = [pb.center, pb.side];
+        if (pf) fronts = [pf.center, pf.side];
+        if (!pb || !pf) warnings.push('呢個款式做唔到公主線（褶位唔夠），部份已略過。');
+      }
+    }
+    function yoke(list, y, isFront) {
+      var out = [], yokes = [];
+      list.forEach(function (pc, i) {
+        var r = M.splitAtY(pc, y, 'yokeSeam', {
+          key: (isFront ? 'frontYoke' : 'backYoke') + (i ? 'Side' : ''),
+          zh: (isFront ? '前育克' : '後育克') + (i ? '（側）' : ''), en: isFront ? 'FRONT YOKE' : 'BACK YOKE',
+          cutZh: pc.fold ? '裁 2 片對摺（面＋裡）' : '裁 4 片（面＋裡，左右對稱）', cutEn: pc.fold ? 'CUT 2 ON FOLD' : 'CUT 4', qty: pc.fold ? 2 : 4, small: true,
+          cutZhNoFold: '裁 4 片（面＋裡，左右對稱）', cutEnNoFold: 'CUT 4', qtyNoFold: 4
+        });
+        if (r) { yokes.push(r.upper); out.push(r.lower); } else out.push(pc);
+      });
+      if (!yokes.length) warnings.push((isFront ? '前' : '後') + '育克位置唔啱，已略過。');
+      return { yokes: yokes, rest: out };
+    }
+    var res = [];
+    if (st.yoke === 'back' || st.yoke === 'both') {
+      var yb = yoke(backs, back._.C.y + clamp(st.yokeDepthB || 9, 3, 25), false);
+      backs = yb.rest; res = res.concat(yb.yokes);
+      if (st.yokeFull > 0 && yb.yokes.length) {
+        var bc = backs.filter(function (p) { return p.edges.some(function (e) { return e.name === 'center'; }); })[0];
+        if (bc) PM.modify.addFullness(bc, st.yokeFull / 2, st.yokeFullType);
+      }
+    }
+    if (st.yoke === 'front' || st.yoke === 'both') {
+      var yf = yoke(fronts, clamp(st.yokeDepthF || 7, 3, 20), true);
+      fronts = yf.rest; res = res.concat(yf.yokes);
+      if (st.yokeFull > 0 && yf.yokes.length && !st.opening) {
+        var fc = fronts.filter(function (p) { return p.edges.some(function (e) { return e.name === 'center'; }); })[0];
+        if (fc) PM.modify.addFullness(fc, st.yokeFull / 2, st.yokeFullType);
+      }
+    }
+    if (st.yoke !== 'none' && st.yokeFull > 0 && !res.length) warnings.push('冇育克，所以冇加碎褶／褶。');
+    return backs.concat(fronts).concat(res);
+  }
+
+  function rufflePieces(st, body, sl, warnings) {
+    if (!st.ruffle || st.ruffle === 'none') return [];
+    var M = PM.modify, W = clamp(st.ruffleW || 6, 2, 30), R = clamp(st.ruffleRatio || 1.8, 1, 3);
+    var sumEdge = function (pcs, name) {
+      return pcs.reduce(function (s, pc) {
+        return s + pc.edges.filter(function (e) { return e.name === name; }).reduce(function (t, e) { return t + G.polyLen(e.pts); }, 0);
+      }, 0);
+    };
+    var bodyMain = body.filter(function (p) { return !/Yoke/.test(p.key); });
+    if (st.ruffle === 'hem') {
+      return [M.ruffle('ruffle', '下擺荷葉邊', 'HEM RUFFLE', sumEdge(bodyMain, 'hem'), W, R, 2, '（前後各半件）')];
+    }
+    if (st.ruffle === 'sleeve') {
+      if (!sl) { warnings.push('無袖，冇得加袖口荷葉邊。'); return []; }
+      return [M.ruffle('ruffle', '袖口荷葉邊', 'SLEEVE RUFFLE', sumEdge([sl], 'hem'), W, R, 2)];
+    }
+    if (st.ruffle === 'neck') {
+      return [M.ruffle('ruffle', '領口荷葉邊', 'NECK RUFFLE', sumEdge(body, 'neck'), W, R, 2, '（左右各半）')];
+    }
+    return [];
+  }
+
   function draft(m, ease, style) {
     var st = Object.assign({}, DEFAULT_STYLE, style || {});
     if (st.garment === 'skirt' && PM.draftSkirt) return PM.draftSkirt(m, ease, st);
@@ -660,6 +751,9 @@
     if (st.opening && st.facing) extras.push(facing(st, bod.front));
     if (sl && sl.info.cuff) extras.push(cuffPiece(sl.info.cuff));
     if (st.pocket && st.pocket !== 'none') extras.push(pocketPiece(st, m, bod.front));
+    var body = applyTopMods(st, bod.back, bod.front, warnings);
+    pieces = body.concat(sl ? [sl] : []);
+    extras = extras.concat(rufflePieces(st, body, sl, warnings));
     pieces = pieces.concat(extras);
     return { back: bod.back, front: bod.front, sleeve: sl, pieces: pieces, info: info, warnings: warnings, style: st };
   }

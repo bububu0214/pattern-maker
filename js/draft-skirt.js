@@ -156,7 +156,94 @@
       return pc;
     }
 
-    var back = piece(false), front = piece(true);
+    /* ---- 特別裙款：碎褶裙、百褶裙、半圓／全圓裙 ---- */
+    function special(isFront) {
+      var isBack = !isFront;
+      var fold = isFront ? slit !== 'front' : (zip !== 'back' && slit !== 'back');
+      var key = isFront ? 'skirtFront' : 'skirtBack';
+      var zhName = isFront ? '前裙片' : '後裙片', enName = isFront ? 'SKIRT FRONT' : 'SKIRT BACK';
+      var notches = [], guides = [], edges, dims, label, grain, info;
+      var zipEnd = isBack && zip === 'back' ? 18 : null;
+      if (shape === 'circle' || shape === 'halfcircle') {
+        var phi = (shape === 'circle' ? 90 : 45) * Math.PI / 180;
+        var r = Wt / (shape === 'circle' ? 2 * Math.PI : Math.PI);
+        var O = P(0, -r), R2 = r + len;
+        var arc = function (rad, a0, a1) {   // 由角度 a0 去 a1（由垂直向下計，順時針向右）
+          var n = Math.max(1, Math.ceil(Math.abs(a1 - a0) / (Math.PI / 4))), out = [];
+          for (var i = 0; i < n; i++) {
+            var t0 = a0 + (a1 - a0) * i / n, t1 = a0 + (a1 - a0) * (i + 1) / n, k = 4 / 3 * Math.tan((t1 - t0) / 4);
+            var p0 = G.add(O, P(rad * Math.sin(t0), rad * Math.cos(t0))), p3 = G.add(O, P(rad * Math.sin(t1), rad * Math.cos(t1)));
+            var d0 = P(Math.cos(t0), -Math.sin(t0)), d1 = P(Math.cos(t1), -Math.sin(t1));
+            out.push([p0, G.add(p0, G.mul(d0, rad * k)), G.sub(p3, G.mul(d1, rad * k)), p3]);
+          }
+          return out;
+        };
+        var Sw = G.add(O, P(r * Math.sin(phi), r * Math.cos(phi))), Sh = G.add(O, P(R2 * Math.sin(phi), R2 * Math.cos(phi)));
+        var sideL = [B.line(Sw, Sh)];
+        var sideSlit = null;
+        if (slit === 'side') { sideSlit = G.lerp(Sw, Sh, (len - slitLen) / len); sideL = [B.line(Sw, sideSlit), B.line(sideSlit, Sh)]; notches.push({ edge: 'side', p: sideSlit, count: 2 }); }
+        var cP = [P(0, len)];
+        if ((slit === 'back' && isBack) || (slit === 'front' && isFront)) { cP.push(P(0, len - slitLen)); notches.push({ edge: 'center', p: P(0, len - slitLen), count: 2 }); }
+        if (zipEnd) { cP.push(P(0, zipEnd)); notches.push({ edge: 'center', p: P(0, zipEnd), count: 1 }); }
+        cP.push(P(0, 0));
+        edges = [B.edge('waist', arc(r, 0, phi)), B.edge('side', sideL), B.edge('hem', B.reverse(arc(R2, 0, phi))), { name: 'center', pts: cP }];
+        var mid = G.add(O, P((r + len * 0.45) * Math.sin(phi * 0.45), (r + len * 0.45) * Math.cos(phi * 0.45)));
+        label = { p: mid };
+        grain = [P(2.5, len * 0.25), P(2.5, len * 0.8)];
+        info = { waistW: Wt / 4, hipW: null, hemW: R2 * phi, darts: 0, dartW: 0, side: 0 };
+        dims = [
+          { kind: 'dim', a: P(0, 0), b: P(0, len), side: 'left', zh: '裙長 ' + f1(len), en: 'Length ' + f1(len) },
+          { kind: 'edge', edge: 'waist', zh: '腰', en: 'Waist', inside: true },
+          { kind: 'edge', edge: 'hem', zh: '下擺', en: 'Hem', frac: 0.5 }
+        ];
+      } else {
+        // 碎褶裙／百褶裙：長方形
+        var ratio = shape === 'pleated' ? 3 : clamp(st.skirtRatio || 1.6, 1.2, 3);
+        var base = Math.max(Wt, Ht) / 4;            // 每片（半幅）
+        var w = shape === 'pleated' ? Wt / 4 * 3 : Math.max(Ht / 4 + 2, base * ratio);
+        var sideP = [P(w, 0)];
+        var cPts = [P(0, len)];
+        if ((slit === 'back' && isBack) || (slit === 'front' && isFront)) { cPts.push(P(0, len - slitLen)); notches.push({ edge: 'center', p: P(0, len - slitLen), count: 2 }); }
+        if (zipEnd) { cPts.push(P(0, zipEnd)); notches.push({ edge: 'center', p: P(0, zipEnd), count: 1 }); }
+        cPts.push(P(0, 0));
+        if (slit === 'side') { sideP.push(P(w, len - slitLen)); notches.push({ edge: 'side', p: P(w, len - slitLen), count: 2 }); }
+        sideP.push(P(w, len));
+        var waistPts = [P(0, 0), P(w / 2, 0), P(w, 0)];
+        notches.push({ edge: 'waist', p: P(w / 2, 0), count: 1 });
+        if (shape === 'pleated') {
+          // 順褶：每 4 cm 左右一個；每個褶 = 面 s + 入 2s
+          var n = Math.max(3, Math.round((Wt / 4) / 4)), sp = (Wt / 4) / n;
+          for (var i = 0; i < n; i++) {
+            var x0 = i * 3 * sp;
+            guides.push({ pts: [P(x0 + sp, 0.2), P(x0 + sp, len - 0.2)], dash: [0.6, 0.3], zh: i === 0 ? '摺線' : null, en: i === 0 ? 'FOLD' : null });
+            guides.push({ pts: [P(x0 + 3 * sp, 0.2), P(x0 + 3 * sp, len - 0.2)], dash: null, zh: i === 0 ? '對齊線' : null, en: i === 0 ? 'PLACE' : null });
+          }
+          guides.forEach(function (gd) { if (!gd.zh) { delete gd.zh; delete gd.en; } });
+        } else {
+          guides.push({ pts: [P(1, 1.2), P(Math.min(w - 1, 18), 1.2)], dash: [0.3, 0.3], zh: '腰位收碎褶至 ' + f1(Wt / 4) + ' cm', en: 'GATHER TO ' + f1(Wt / 4) });
+        }
+        edges = [{ name: 'waist', pts: waistPts }, { name: 'side', pts: sideP }, { name: 'hem', pts: [P(w, len), P(0, len)] }, { name: 'center', pts: cPts }];
+        label = { p: P(w * 0.5, len * 0.4) };
+        grain = [P(Math.min(4, w * 0.2), len * 0.25), P(Math.min(4, w * 0.2), len * 0.8)];
+        info = { waistW: Wt / 4, hipW: w, hemW: w, darts: 0, dartW: 0, side: 0 };
+        dims = [
+          { kind: 'dim', a: P(0, 0), b: P(0, len), side: 'left', zh: '裙長 ' + f1(len), en: 'Length ' + f1(len) },
+          { kind: 'below', a: P(0, len), b: P(w, len), zh: '闊 ' + f1(w), en: 'Width ' + f1(w) }
+        ];
+      }
+      if (zipEnd) guides.push({ pts: [P(0.8, zipEnd), P(2.5, zipEnd)], dash: null, zh: '拉鏈止點', en: 'ZIP END' });
+      var pc = {
+        key: key, zh: zhName, en: enName, mirror: isFront, edges: edges, fold: fold ? 'center' : null, darts: [], guides: guides,
+        marks: [], notches: notches, grain: grain, label: label, cut: fold ? 1 : 2,
+        foldZh: (isFront ? '前中' : '後中') + '對摺線', foldEn: (isFront ? 'CF' : 'CB') + ' PLACE ON FOLD',
+        saEdge: { hem: shape === 'circle' || shape === 'halfcircle' ? Math.min(hemSa, 1.5) : hemSa }, dims: dims, info: info
+      };
+      return pc;
+    }
+
+    var isSpecial = ['gathered', 'pleated', 'circle', 'halfcircle'].indexOf(shape) >= 0;
+    if (isSpecial) { flare = 0; taper = 0; }
+    var back = isSpecial ? special(false) : piece(false), front = isSpecial ? special(true) : piece(true);
 
     // 腰頭：對摺，連搭位 3 cm
     var bw = clamp(st.bandW || 3, 2, 8), over = 3;
@@ -188,11 +275,12 @@
     return {
       pieces: pieces, back: back, front: front, warnings: warnings, style: st, garment: 'skirt',
       info: {
-        garment: 'skirt', waistTotal: (back.info.waistW + front.info.waistW) * 2, hipTotal: (back.info.hipW + front.info.hipW) * 2,
-        hemTotal: (back.info.hemW + front.info.hemW) * 2, len: len,
+        garment: 'skirt', waistTotal: (back.info.waistW + front.info.waistW) * 2, hipTotal: isSpecial ? null : (back.info.hipW + front.info.hipW) * 2,
+        hemTotal: (back.info.hemW + front.info.hemW) * 2, len: len, special: isSpecial ? shape : null,
         dartsBack: back.info.darts + ' × ' + f1(back.info.dartW), dartsFront: front.info.darts + ' × ' + f1(front.info.dartW),
         sideTake: back.info.side, bandLen: Lb,
-        sideLen: G.polyLen(back.edges[1].pts), sideLenF: G.polyLen(front.edges[1].pts)
+        sideLen: G.polyLen(back.edges[1].pts), sideLenF: G.polyLen(front.edges[1].pts),
+        hipTotalNote: isSpecial
       }
     };
   }
