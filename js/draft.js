@@ -639,23 +639,25 @@
     var r = G.norm(G.sub(Rp, Bp)), Lr = G.dist(Bp, Rp);
     var q = P(-r.y, r.x); if (q.x > 0) q = G.mul(q, -1);  // 指向前中外面
     var at = function (u, v) { return G.add(Bp, G.add(G.mul(r, u * Lr), G.mul(q, v))); };
-    var lw = clamp(st.lapelW || 9, 5, 12);
-    var Lp = at(0.82, lw), Nc = at(0.75, lw * 0.5);
-    // 領口：由側頸點量起 40% 做駁頭接位
-    var neckE = front.edges[0];
-    var nb = neckE.bez ? neckE.bez[0] : null;
-    if (!nb) { warnings.push('西裝領要用圓領口。'); return null; }
-    var Lneck = cubicLen(nb);
-    var parts = splitAtLen(nb, Lneck * 0.6);              // C → Ng，Ng → S
-    var Ng = parts[1][0];
+    var lw = clamp(st.lapelW || 8, 5, 12);
+    // 領口：由側頸點沿翻摺線平行線落到串口（約前領深 85%）
+    if (!front.edges[0].bez) { warnings.push('西裝領要用圓領口。'); return null; }
+    var drop = Math.max(4, (d.C.y - S.y) * 0.85);
+    var Ng = G.sub(S, G.mul(r, drop / Math.abs(r.y)));
+    // 駁頭尖：離翻摺線 lw，高過串口 2.5 cm
+    var yLp = Ng.y - 2.5;
+    var uLp = clamp((yLp - Bp.y - q.y * lw) / (r.y * Lr), 0.4, 0.97);
+    var Lp = at(uLp, lw);
+    var Nc = G.add(Lp, G.mul(G.norm(G.sub(Ng, Lp)), Math.min(3.8, G.dist(Lp, Ng) * 0.6)));  // 駁頭缺口
     var lapelEdge = [
-      [Bp, G.add(Bp, G.add(G.mul(r, Lr * 0.3), G.mul(q, lw * 0.35))), G.sub(Lp, G.mul(r, Lr * 0.18)), Lp],
-      lineBez(Lp, Nc), lineBez(Nc, Ng)
+      [Bp, G.add(Bp, G.add(G.mul(r, Lr * uLp * 0.35), G.mul(q, lw * 0.45))), G.sub(Lp, G.mul(r, Lr * uLp * 0.25)), Lp],
+      lineBez(Lp, Nc)
     ];
+    var parts = [null, null];
     var edges = front.edges;
     var ci = edges.map(function (e) { return e.name; }).indexOf('center');
     var hemPt = edges[ci].pts[0];
-    var newEdges = [bezEdge('neck', [parts[1]])].concat(edges.slice(1, ci))
+    var newEdges = [bezEdge('neck', [lineBez(Nc, Ng), lineBez(Ng, S)])].concat(edges.slice(1, ci))
       .concat([{ name: 'center', pts: [hemPt, Bp] }, bezEdge('lapel', lapelEdge)]);
     front.edges = newEdges;
     // 記號：鈕由翻摺點開始
@@ -665,19 +667,44 @@
     front.guides = front.guides.filter(function (gd) { return gd.zh !== '前中線'; });
     front.guides.push({ pts: [P(0, yBreak), P(0, d.yHc)], dash: [1, 0.3, 0.2, 0.3], zh: '前中線', en: 'CF' });
     front.guides.push({ pts: [Bp, at(0.86, 0)], dash: [0.6, 0.3], zh: '翻摺線', en: 'ROLL LINE' });
+    front.notches = front.notches.filter(function (n) { return n.edge !== 'neck'; });
     front.notches.push({ edge: 'neck', p: Ng, count: 1 }, { edge: 'lapel', p: Nc, count: 1 });
     front.dims = front.dims.filter(function (x) { return x.kind !== 'dim'; }).concat([
       { kind: 'edge', edge: 'lapel', zh: '駁頭', en: 'Lapel', frac: 0.3 }
     ]);
     front.zh = '前片（連駁頭）';
-    return { Bp: Bp, Ng: Ng, Nc: Nc, Lp: Lp, neckToGorge: cubicLen(parts[1]), roll: [Bp, Rp] };
+    return { Bp: Bp, Ng: Ng, Nc: Nc, Lp: Lp, neckToGorge: G.dist(S, Ng), gorge: G.dist(Ng, Nc), roll: [Bp, Rp] };
   }
+  // 西裝領：後領段直，前段（側頸點→串口）向下傾，令領邊長過領底（倒伏量 ~2.5 cm）
   function notchedCollar(st, back, li) {
     var nb = G.polyLen(back.edges[0].pts);
-    var L = nb + li.neckToGorge;
-    var pc = fallCollar({ key: 'collar', zh: '西裝領', en: 'NOTCHED COLLAR', len: L, w: clamp(st.collarW || 7.5, 5, 12),
-      bottomDrop: -1.0, pointOut: 3, pointUp: -(clamp(st.collarW || 7.5, 5, 12) - 4.5), notchAt: [nb], rollAt: 3 });
-    pc.cutZh = '面領 1 片＋底領 1 片（底領斜紋），對摺';
+    var Lf = li.neckToGorge + li.gorge - 0.5;              // 串口留 0.5 cm 唔車到缺口
+    var w = clamp(st.collarW || 7, 5, 12), stand = Math.min(3, w * 0.42);
+    var th = Math.min(0.4, 2.5 / Math.max(nb, 5));
+    var dir = P(Math.cos(th), Math.sin(th)), up = P(Math.sin(th), -Math.cos(th));
+    var K = P(nb, 0), lf = Lf, neck;
+    for (var it = 0; it < 4; it++) {                         // 調到領底長度啱
+      var E = G.add(K, G.mul(dir, lf));
+      neck = [P(0, 0), P(nb * 0.85, 0), G.add(K, G.mul(dir, lf * 0.25)), E];
+      lf += (nb + Lf) - cubicLen(neck);
+    }
+    E = neck[3];
+    var ang = 0.55, fe = G.add(G.mul(up, Math.cos(ang)), G.mul(dir, Math.sin(ang)));
+    var Pt = G.add(E, G.mul(fe, Math.min(4, w * 0.55)));   // 領尖
+    var Kw = G.add(K, G.mul(up, w)), a = w * th * 0.55;
+    var outerB = [lineBez(P(0, -w), P(nb, -w)), [P(nb, -w), P(nb + a, -w), G.sub(Kw, G.mul(dir, a)), Kw],
+      [Kw, G.add(Kw, G.mul(dir, lf * 0.35)), G.add(Pt, G.mul(G.norm(G.sub(Kw, Pt)), lf * 0.3)), Pt]];
+    var bParts = splitListAt([neck], [nb]);
+    var pc = {
+      key: 'collar', zh: '西裝領', en: 'NOTCHED COLLAR', mirror: false, fold: 'center', darts: [], marks: [],
+      edges: [bezEdge('outer', outerB), { name: 'front', pts: [Pt, E] }, bezEdge('neck', reverseBez(bParts)), { name: 'center', pts: [P(0, 0), P(0, -w)] }],
+      guides: [{ pts: [P(0, -stand), P(nb, -stand), G.add(E, G.mul(up, stand * 0.4))], dash: [0.6, 0.3], zh: '翻摺線', en: 'ROLL LINE' }],
+      notches: [{ edge: 'neck', p: bParts[0][3], count: 1 }],
+      grain: [P(1.5, -w * 0.85), P(1.5, -w * 0.2)],
+      label: { p: P(nb * 0.6, -w * 0.55) }, foldZh: '後中對摺', foldEn: 'CB FOLD',
+      cut: 1, qty: 2, cutZh: '面領 1 片＋底領 1 片（底領斜紋），對摺', cutEn: 'CUT 2 ON FOLD', small: true
+    };
+    pc.dims = [{ kind: 'edge', edge: 'neck', zh: '領底', en: 'Neck', frac: 0.5 }, { kind: 'edge', edge: 'outer', zh: '領邊', en: 'Edge', frac: 0.5 }];
     return pc;
   }
   function jacketFacing(front, li) {
