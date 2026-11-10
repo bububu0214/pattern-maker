@@ -39,7 +39,7 @@
       var hip0 = P(0, D);
       var sideW, dartW = 0;
       if (elastic) {
-        sideW = P(hipW, isFront ? 0 : -0.5);                          // 鬆緊腰：側骨直上，冇褶
+        sideW = P(hipW, 0);                                           // 鬆緊腰：側骨直上，冇褶（前後側骨一樣長）
         top = isFront ? P(0, 0) : P(2, -2);
       } else {
         // 側骨收 1 cm，其餘做褶（最多 3.5）；褶太多就再收側骨
@@ -89,7 +89,11 @@
       var hipP = P(hipW, D);
       var side = [];
       if (Math.abs(sideW.x - hipW) < 0.05) side.push(B.line(sideW, hipP));
-      else side.push([sideW, P(sideW.x + (hipW - sideW.x) * 0.6, sideW.y + D * 0.3), P(hipW, D * 0.6), hipP]);
+      else {
+        // 文化式：側骨喺側腰點同腰線成直角
+        var wd = G.norm(G.sub(sideW, top)), down = P(-wd.y, wd.x); if (down.y < 0) down = G.mul(down, -1);
+        side.push([sideW, G.add(sideW, G.mul(down, D * 0.35)), P(hipW, D * 0.6), hipP]);
+      }
       side.push(B.line(hipP, sideCrotch));
       if (L >= K) {
         side.push([sideCrotch, P(hipW, CD + (K - CD) * 0.3), P(kneeOut.x, K - (K - CD) * 0.3), kneeOut]);
@@ -123,6 +127,9 @@
         darts.push({ pts: [lp, apex, rp], closed: false, w: dartW, apex: apex });
         waistList = [B.line(top, lp), B.line(lp, rp), B.line(rp, sideW)];
         notches.push({ edge: 'waist', p: lp, count: 1 }, { edge: 'waist', p: rp, count: 1 });
+      } else if (elastic) {
+        // 腰線喺側骨成直角（側骨垂直，所以腰線到側邊係水平）
+        waistList = [[top, G.lerp(top, sideW, 0.35), P(sideW.x - (sideW.x - top.x) * 0.3, sideW.y), sideW]];
       } else {
         waistList = [B.line(top, sideW)];
       }

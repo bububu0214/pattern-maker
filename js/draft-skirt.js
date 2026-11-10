@@ -73,13 +73,17 @@
       if (elasticPiece || halfBack) cy = 0;
       var Sw = P(sx, -rise0);                      // 側腰升 0.7（橡筋腰唔升）
       var C = P(0, cy);
-      var waistCurve = [C, P(sx * 0.5, cy), P(sx * 0.82, -rise0 + (rise0 ? 0.12 : 0)), Sw];
+
 
       // 臀位弧線 + 側縫
       var hipP = P(hipW, D);
       var hipCurve = sx > hipW + 0.3
         ? [Sw, P(sx - (sx - hipW) * 0.35, D * 0.3), P(hipW + (sx - hipW) * 0.08, D * 0.7), hipP]   // 橡筋後幅：腰闊過臀，順直落臀
         : [Sw, P(sx + (hipW - sx) * 0.65, -rise0 + D * 0.3), P(hipW, D * 0.6), hipP];
+      // 文化式：腰線喺側腰點同側骨成直角，喺中線水平（同中線成直角）
+      var tS = G.norm(G.sub(hipCurve[1], Sw));
+      var nW = P(-tS.y, tS.x); if (nW.x > 0) nW = G.mul(nW, -1);   // 垂直側骨、指向中線
+      var waistCurve = [C, P(sx * 0.45, cy), G.add(Sw, G.mul(nW, sx * 0.3)), Sw];
       var sideHemX = hipW - taper + flare;
       var sideHemY = len - (flare ? flare * 0.12 : 0);
       var sideHem = P(sideHemX, sideHemY);
