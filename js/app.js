@@ -243,14 +243,16 @@
     }
     if (i.garment === 'skirt') {
       var sr = [
-        ['成品腰圍（連放鬆量）', i.waistTotal, v.waist + v.easeWaist],
+        (v.zip === 'elastic' || v.zip === 'halfElastic')
+          ? ['裙腰口（未收橡筋）', i.waistTotal, null]
+          : ['成品腰圍（連放鬆量）', i.waistTotal, v.waist + v.easeWaist],
         ['成品臀圍（連放鬆量）', i.hipTotal, i.hipTotal == null ? null : v.hip + v.easeHip],
         ['下擺圍', i.hemTotal],
         ['裙長（腰下，唔計腰頭）', i.len],
         ['後腰褶 / 前腰褶（每片）', null, null, i.dartsBack + ' / ' + i.dartsFront],
         ['側縫收腰（每邊）', i.sideTake],
         ['側縫長 後 / 前', null, null, f1(i.sideLen) + ' / ' + f1(i.sideLenF)],
-        ['腰頭長（連搭位）', i.bandLen]
+        ['腰頭總長', i.bandLen]
       ];
       document.getElementById('info').innerHTML = '<table><tr><th>項目</th><th>紙樣（cm）</th><th>參考（cm）</th></tr>' +
         sr.map(function (r) {
@@ -352,7 +354,8 @@
     if (v.garment === 'trousers') return TR_NAMES[v.trouserShape] + ', length ' + v.trouserLen + ' cm from waist, ' + TRW_NAMES[v.trouserWaist];
     if (v.garment === 'skirt') {
       return SK_NAMES[v.skirtShape] + ', length ' + v.skirtLen + ' cm from waist' +
-        (v.slit !== 'none' ? ', ' + v.slit + ' slit ' + v.slitLen + ' cm' : '') + ', ' + v.zip + ' zip, waistband ' + v.bandW + ' cm';
+        (v.slit !== 'none' ? ', ' + v.slit + ' slit ' + v.slitLen + ' cm' : '') + ', ' +
+        ({ back: 'back zip', side: 'side zip', halfElastic: 'flat front / elastic back waist', elastic: 'elastic waist' }[v.zip]) + ', waistband ' + v.bandW + ' cm';
     }
     return NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] + ', ' + NAMES.fit[v.fit] +
       ', length ' + (v.hemLen >= 0 ? '+' : '') + v.hemLen + ' from waist' + (v.hemShape === 'aline' ? ', A-line' : '') +
@@ -562,7 +565,7 @@
     ' "yoke": "none|back|front|both", "yokeFullness": "none|gather|pleat", "princess": false, "puffSleeve": false, "sleeveHemGather": false,',
     ' "ruffle": "none|hem|sleeve|neck",',
     ' "trouserShape": "straight|slim|wide", "trouserLength": "shorts|capri|ankle|full", "trouserWaist": "zip|side|elastic",',
-    ' "skirtShape": "straight|pencil|aline|gathered|pleated|halfcircle|circle", "skirtLength": "mini|knee|midi|long", "slit": "none|back|front|side", "zip": "back|side",',
+    ' "skirtShape": "straight|pencil|aline|gathered|pleated|halfcircle|circle", "skirtLength": "mini|knee|midi|long", "slit": "none|back|front|side", "zip": "back|side|halfElastic|elastic",',
     ' "fabricTip": "...", "notes": "..."}',
     'For a skirt, fill the skirt fields (top fields may be anything); for a top, the skirt fields may be anything.',
     '- yoke = a separate shoulder/upper-back panel (seam across the upper back or front); yokeFullness = gathers or a centre box pleat below the yoke.',
@@ -570,7 +573,7 @@
     '- ruffle = a gathered ruffle strip sewn to the hem, sleeve hem or neckline.',
     'Skirt definitions: straight = straight from hip to hem; pencil = narrows towards the hem; aline = flares out; gathered = gathered at the waist (dirndl); pleated = knife pleats all round; halfcircle / circle = half or full circle skirt. skirtLength: mini = mid-thigh or shorter, knee = around the knee, midi = mid-calf, long = ankle.',
     'Trouser definitions: straight = straight leg, slim = narrow/tapered, wide = wide or flared leg; shorts = above the knee, capri = mid-calf, ankle = just above the ankle (9/10 length), full = to the floor/heel; trouserWaist: zip = front fly with waistband, side = side zip with waistband, elastic = elastic/drawstring waist.',
-    'slit = a vent/opening at the hem (back, front centre or side seam). zip = where the zip is (back centre or side; default back). The skirt always has a waistband and waist darts.',
+    'slit = a vent/opening at the hem (back, front centre or side seam). zip = waist closure: back = back zip with waistband, side = side zip with waistband, halfElastic = flat front waistband with elastic back (no zip), elastic = fully elastic waist (no zip). Default back. The skirt always has a waistband and waist darts.',
     'Definitions:',
     '- neckWidth = how far the neckline opens towards the shoulders (narrow = sits at the base of the neck). With a collar, describe the neckline under the collar (usually round, narrow, high).',
     '- frontNeckDepth: high = at the base of the neck, medium = a little lower, low = well below the collarbone, deep = near or below the bust line.',
@@ -651,7 +654,7 @@
     var lenP = pick(r.skirtLength, ['mini', 'knee', 'midi', 'long'], 'knee');
     var slit = pick(r.slit, ['none', 'back', 'front', 'side'], 'none');
     setVal('skirtShape', shape); setVal('skirtLenPreset', lenP); setVal('skirtLen', SKIRT_LEN[lenP]);
-    setVal('slit', slit); setVal('zip', pick(r.zip, ['back', 'side'], 'back'));
+    setVal('slit', slit); setVal('zip', pick(r.zip, ['back', 'side', 'halfElastic', 'elastic'], 'back'));
     var lim = { skirtLen: [25, 120], skirtFlare: [1, 40], slitLen: [5, 60], bandW: [2, 8] };
     Object.keys(lim).forEach(function (k) {
       var x = num(cm[k], lim[k][0], lim[k][1]);
@@ -665,7 +668,7 @@
     aiResult.innerHTML = '<div class="ai"><p><b>' + (images.length && imagesOK ? 'AI 睇到：' : 'AI：') + '</b>' + esc(r.summary || '') + '</p>' +
       (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
       '<p>已設定：半截裙、' + SK_ZH[v2.skirtShape] + '、裙長 ' + v2.skirtLen + ' cm、' + SLIT_ZH[v2.slit] +
-      (v2.slit !== 'none' ? ' ' + v2.slitLen + ' cm' : '') + '、' + (v2.zip === 'back' ? '後中拉鏈' : '側拉鏈') + '、腰頭</p>' +
+      (v2.slit !== 'none' ? ' ' + v2.slitLen + ' cm' : '') + '、' + ({ back: '後中拉鏈', side: '側拉鏈', halfElastic: '前平後橡筋', elastic: '全橡筋' }[v2.zip]) + '、腰頭</p>' +
       (r.fabricTip ? '<p>🧵 用布：' + esc(r.fabricTip) + '</p>' : '') +
       (r.notes ? '<p>⚠️ 未能做到嘅細節：' + esc(r.notes) + '</p>' : '') +
       '<p class="hint">AI 估嘅款式未必完全準，可以喺下面再改。</p></div>';

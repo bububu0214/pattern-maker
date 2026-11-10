@@ -383,6 +383,9 @@
       });
       each('腰頭\\s*(?:闊|寬|高)\\s*' + NUM, function (m) { put('bandW', round(num(m[1]))); done.push('腰頭闊 ' + c.bandW + ' cm'); });
       each('腰頭(?!\\s*(?:闊|寬|高))', function () { });
+      var half = false;
+      each('前平後(?:橡筋|鬆緊)|半橡筋|後橡筋|半鬆緊', function () { half = true; put('zip', 'halfElastic'); done.push('前平後橡筋（冇拉鏈）'); });
+      if (!half) each('全橡筋|橡筋腰|鬆緊腰|鬆緊帶|全鬆緊|(?:冇|唔要|無)拉鏈|elastic', function () { put('zip', 'elastic'); done.push('全橡筋（冇拉鏈）'); });
       each('(?:鬆|寬|闊)' + MORE, function () { put('easeHip', round((c.easeHip || 4) + 2)); put('easeWaist', round((c.easeWaist || 1) + 1)); done.push('放鬆啲（臀圍 +' + c.easeHip + '）'); });
       each('(?:緊|窄)' + MORE, function () { put('easeHip', round(Math.max(2, (c.easeHip || 4) - 2))); done.push('收窄啲（臀圍 +' + c.easeHip + '）'); });
     }
