@@ -11,9 +11,9 @@
   var NUM = ['bust', 'waist', 'hip', 'shoulder', 'backLen', 'frontLen', 'neck', 'armhole',
     'waistToHip', 'armLen', 'upperArm', 'wrist',
     'easeBust', 'easeWaist', 'easeHip', 'easeNeck', 'easeArmhole', 'sa',
-    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext'];
-  var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit'];
-  var CHK = ['cfFold', 'cbFold', 'dims', 'opening'];
+    'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext', 'collarW', 'cuffH'];
+  var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit', 'collar', 'pocket', 'cuff'];
+  var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing'];
   var defaults = readForm();
 
   /* ---------- 預設值對照 ---------- */
@@ -51,7 +51,12 @@
     form.elements.ext.disabled = !v.opening;
     form.elements.flare.disabled = v.hemShape !== 'aline';
     form.elements.sleeveLen.disabled = v.sleeve === 'none';
+    form.elements.facing.disabled = !v.opening;
+    form.elements.collarW.disabled = v.collar === 'none';
+    form.elements.cuff.disabled = !(v.sleeve === 'long' || v.sleeve === 'elbow');
+    form.elements.cuffH.disabled = form.elements.cuff.disabled || v.cuff === 'none';
   }
+  ['collar', 'cuff'].forEach(function (k) { form.elements[k].addEventListener('change', syncControls); });
   form.elements.fit.addEventListener('change', function () {
     var e = FIT_EASE[form.elements.fit.value];
     Object.keys(e).forEach(function (k) { setVal(k, e[k]); });
@@ -90,7 +95,9 @@
       neckline: v.neckline, neckWiden: v.neckWiden || 0, neckDropF: v.neckDropF || 0, neckDropB: v.neckDropB || 0,
       hemLen: v.hemLen || 0, hemShape: v.hemShape, flare: v.flare || 0,
       sleeve: v.sleeve, sleeveLen: v.sleeveLen || 0, fit: v.fit,
-      opening: v.opening, ext: v.ext || 2, cfFold: v.cfFold, cbFold: v.cbFold
+      opening: v.opening, ext: v.ext || 2, cfFold: v.cfFold, cbFold: v.cbFold,
+      facing: v.facing, collar: v.collar, collarW: v.collarW || 7, pocket: v.pocket,
+      cuff: form.elements.cuff.disabled ? 'none' : v.cuff, cuffH: v.cuffH || 5
     };
     var res = PM.draft(m, ease, style);
     var model = PM.layout(res, { sa: v.sa, dims: v.dims });
@@ -197,7 +204,8 @@
   function styleLine(v) {
     return NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] + ', ' + NAMES.fit[v.fit] +
       ', length ' + (v.hemLen >= 0 ? '+' : '') + v.hemLen + ' from waist' + (v.hemShape === 'aline' ? ', A-line' : '') +
-      (v.opening ? ', front opening' : '');
+      (v.opening ? ', front opening' : '') + (v.collar === 'peterpan' ? ', Peter Pan collar' : '') +
+      (v.pocket !== 'none' ? ', patch pocket' : '') + (v.cuff === 'band' && !form.elements.cuff.disabled ? ', cuffs' : '');
   }
 
   document.getElementById('dlSvg').onclick = function () {
@@ -229,7 +237,8 @@
       'Pattern: armhole F+B ' + f1(i.armBack + i.armFront) + ', darts back ' + f1(i.dartBack) + ' / front ' + f1(i.dartFront)
     ];
     if (i.sleeve) lines.push('Sleeve: cap ' + f1(i.sleeve.capLen) + ' (ease ' + f1(i.sleeve.capEase) + '), bicep ' + f1(i.sleeve.bicep) + ', length ' + f1(i.sleeve.len));
-    if (v.opening) lines.push('Front facing not included.');
+    if (v.opening && !v.facing) lines.push('Front facing not included.');
+    lines.push('Pieces: ' + current.res.pieces.map(function (p) { return p.en.toLowerCase(); }).join(', '));
     download(PM.toPDF(current.model, { lines: lines, title: 'Women\'s Top Pattern - ' + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
   };
 
@@ -285,21 +294,29 @@
   }
 
   var AI_PROMPT = [
-    'You are a pattern-making assistant. The image shows a garment design (a sketch or a photo).',
-    'Identify the TOP (upper-body garment or the bodice of a dress) and classify its features for a women\'s bodice pattern generator.',
+    'You are a pattern-making assistant. The image shows a garment design (a sketch, a photo of a worn garment, or a garment on a hanger or mannequin).',
+    'Identify the TOP (upper-body garment or the bodice of a dress) and classify its features for a women\'s pattern generator.',
     'Reply with ONLY a JSON object, no other text, exactly in this shape:',
     '{"isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
     ' "frontNeckDepth": "high|medium|low|deep", "backNeckDepth": "high|medium|low",',
     ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline", "sleeve": "none|short|elbow|long",',
-    ' "fit": "fitted|regular|loose", "frontOpening": false, "notes": "..."}',
-    'Definitions: neckWidth = how far the neckline opens towards the shoulders (narrow = sits at the base of the neck).',
-    'frontNeckDepth: high = at the base of the neck, medium = a little lower, low = well below the collarbone, deep = near or below the bust line.',
-    'length: cropped = ends above the waist, waist = at the waist, hip = at the hips, tunic = mid-thigh, dress = knee length or longer.',
-    'sleeve: short = above the elbow, elbow = elbow to 3/4, long = to the wrist. Cap sleeves count as short.',
-    'fit: fitted = shaped to the body with darts or seams, regular = some shaping, loose = boxy or flowing.',
-    'frontOpening = true if it opens at centre front with buttons or a zip.',
+    ' "fit": "fitted|regular|loose", "frontOpening": false, "collar": "none|peterpan|other",',
+    ' "pocket": "none|left|right|both", "cuff": "none|band", "fabricTip": "...", "notes": "..."}',
+    'Definitions:',
+    '- neckWidth = how far the neckline opens towards the shoulders (narrow = sits at the base of the neck). With a collar, describe the neckline under the collar (usually round, narrow, high).',
+    '- frontNeckDepth: high = at the base of the neck, medium = a little lower, low = well below the collarbone, deep = near or below the bust line.',
+    '- length: cropped = ends above the waist, waist = at the waist, hip = at the hips, tunic = mid-thigh, dress = knee length or longer.',
+    '  Judge length against the body or, on a hanger or mannequin, against typical body proportions: most shirts and blouses reach the hip.',
+    '- sleeve: short = above the elbow, elbow = elbow to 3/4, long = to the wrist. Cap sleeves count as short.',
+    '- fit: fitted = shaped to the body with darts or seams, regular = some shaping, loose = boxy or flowing.',
+    '- frontOpening = true if it opens at centre front with buttons, snaps or a zip (the generator adds a button stand, button marks and a front facing).',
+    '- collar: peterpan = a flat collar with rounded front ends; other = any other collar (shirt collar with stand, notched/lapel, mandarin, shawl, sailor, bow, etc.).',
+    '- pocket: patch pocket on the chest, as seen by the wearer (left = wearer\'s left, which appears on the RIGHT of a front-facing photo).',
+    '- cuff: band = sleeve finished with a cuff band (usually with gathers or pleats and a button); none = plain hem.',
+    'The generator CAN make: the necklines above, length, straight or A-line hem, sleeves, fit, front button opening with facing, Peter Pan collar, chest patch pockets, cuffs.',
     'summary: one short sentence in Traditional Chinese (Cantonese, Hong Kong style) describing the garment.',
-    'notes: in Traditional Chinese (Cantonese), list design details this simple generator cannot make (collars, pockets, ruffles, gathers, princess seams, asymmetry, wrap fronts, etc.), or "" if none.',
+    'fabricTip: in Traditional Chinese (Cantonese), ONLY if the garment mixes fabrics or colours by area: which pattern pieces to cut in which fabric (pieces: 前片, 後片, 袖, 衣領, 袖頭, 貼袋), e.g. "袖同袖頭用牛仔布，前後片用印花布". Otherwise "". Never mention prints or colours otherwise; they do not change the pattern.',
+    'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, gathers, ruffles, princess seams, yokes, asymmetry, wrap fronts, pocket flaps, side pockets). Do not list anything it can make, nor fabric/print/colour. "" if none.',
     'If the image is not a garment or has no top, set "isTop": false and explain in "summary".'
   ].join('\n');
 
@@ -339,11 +356,22 @@
     setVal('fit', fit);
     var e = FIT_EASE[fit]; Object.keys(e).forEach(function (k) { setVal(k, e[k]); });
     form.elements.opening.checked = !!r.frontOpening;
+    if (r.frontOpening) form.elements.facing.checked = true;
+    var collar = r.collar === 'peterpan' ? 'peterpan' : 'none';
+    if (collar === 'peterpan' && (neckline === 'v' || neckline === 'square')) { neckline = 'round'; setVal('neckline', 'round'); fd = 0; setVal('neckDropF', 0); }
+    setVal('collar', collar);
+    setVal('pocket', pick(r.pocket, ['none', 'left', 'right', 'both'], 'none'));
+    var cuff = r.cuff === 'band' && (sleeve === 'long' || sleeve === 'elbow') ? 'band' : 'none';
+    setVal('cuff', cuff);
     syncControls();
+    var pocketZh = { left: '左胸貼袋', right: '右胸貼袋', both: '兩邊胸貼袋' }[form.elements.pocket.value];
 
     aiResult.innerHTML = '<div class="ai"><p><b>AI 睇到：</b>' + esc(r.summary || '') + '</p>' +
       '<p>已設定：' + ZH.neckline[neckline] + '、' + ZH.length[length] + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
-      ZH.fit[fit] + (r.frontOpening ? '、前中開胸' : '') + '</p>' +
+      ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
+      (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') + '</p>' +
+      (r.fabricTip ? '<p>🧵 用布：' + esc(r.fabricTip) + '</p>' : '') +
+      (r.collar === 'other' ? '<p>⚠️ 呢款衣領暫時做唔到，紙樣冇衣領，可以自己另外加。</p>' : '') +
       (r.notes ? '<p>⚠️ 未能做到嘅細節：' + esc(r.notes) + '</p>' : '') +
       '<p class="hint">AI 估嘅款式未必完全準，可以喺下面再改。</p></div>';
     generate();

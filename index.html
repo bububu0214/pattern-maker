@@ -75,6 +75,27 @@
           </select></label>
         <label class="chk"><input type="checkbox" name="opening"> 前中開胸（加門襟同鈕位）</label>
         <label>門襟寬 <input type="number" name="ext" step="0.5" min="0.5" max="6" value="2"> <span>cm</span></label>
+        <label class="chk"><input type="checkbox" name="facing" checked> 加前貼邊（開胸用）</label>
+        <label>衣領
+          <select name="collar">
+            <option value="none">無</option>
+            <option value="peterpan">彼得潘圓領</option>
+          </select></label>
+        <label>領闊 <input type="number" name="collarW" step="0.5" min="3" max="15" value="7"> <span>cm</span></label>
+        <label>口袋
+          <select name="pocket">
+            <option value="none">無</option>
+            <option value="left">左胸貼袋</option>
+            <option value="right">右胸貼袋</option>
+            <option value="both">兩邊胸貼袋</option>
+          </select></label>
+        <label>袖口
+          <select name="cuff">
+            <option value="none">直袖口</option>
+            <option value="band">袖頭（收褶＋袖衩）</option>
+          </select>
+          <small>袖頭只適用於長袖／七分袖</small></label>
+        <label>袖頭闊 <input type="number" name="cuffH" step="0.5" min="2" max="12" value="5"> <span>cm</span></label>
       </fieldset>
 
       <fieldset>

@@ -40,7 +40,13 @@
     sleeveLen: 0,       // 袖長（由袖山頂度，cm）
     fit: 'fitted',      // fitted 修身 | regular 合身 | loose 寬鬆
     opening: false,     // 前中開胸（門襟）
-    ext: 2              // 門襟寬（前中線外加，cm）
+    ext: 2,             // 門襟寬（前中線外加，cm）
+    facing: true,       // 開胸時加前貼邊
+    collar: 'none',     // none | peterpan 彼得潘圓領
+    collarW: 7,         // 領闊（cm）
+    pocket: 'none',     // none | left | right | both（胸前貼袋，著衫者計）
+    cuff: 'none',       // none | band 袖頭（長袖／七分袖用）
+    cuffH: 5            // 袖頭闊（完成，cm）
   };
 
   function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
@@ -295,7 +301,8 @@
         foldZh: (isFront ? '前中' : '後中') + '對摺線', foldEn: (isFront ? 'CF' : 'CB') + ' PLACE ON FOLD',
         label: { p: P(w * 0.5, yB - 7.5) },
         cut: fold ? 1 : 2, bustW: w, yB: yB, hemY: yHc, sideHem: sideHem, center: [P(cx, C.y), P(cx, yHc)],
-        waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW
+        waistW: isFront ? wwF : wwB, hipW: hipW, L: L, dartW: dW,
+        _: { C: C, S: S, dir: isFront ? fDir : bDir, tip: isFront ? SF : SB, ext: ext, yHc: yHc, dX: dX, dW: dW, w: w }
       };
       pc.dims = [
         { kind: 'dim', a: pc.center[0], b: pc.center[1], side: 'left', zh: (isFront ? '前中長 ' : '後中長 ') + f1(yHc - C.y), en: (isFront ? 'CF ' : 'CB ') + f1(yHc - C.y) },
@@ -378,7 +385,9 @@
     var capList = capF.concat(reverseBez(capB)); // Uf → T → Ub
 
     // 袖身
-    var len = Math.max(h + 3, st.sleeveLen || 20);
+    var useCuff = st.cuff === 'band' && (st.sleeve === 'long' || st.sleeve === 'elbow');
+    var cuffH = clamp(st.cuffH || 5, 2, 12);
+    var len = Math.max(h + 3, (st.sleeveLen || 20) - (useCuff ? cuffH : 0));
     var bicep = c.Ub.x - c.Uf.x;
     if (bicep < m.upperArm + 3) warnings.push('袖寬（' + f1(bicep) + ' cm）比上臂圍＋3 cm 細，袖可能太緊，可以加夾圈放鬆量。');
     var longW = Math.min(bicep, m.wrist + fit.sleeveEase);
@@ -386,20 +395,42 @@
     if (len >= m.armLen * 0.9) hemW = longW;
     else if (len <= h + 15) hemW = bicep - 2;
     else hemW = bicep - (bicep - longW) * clamp((len - h - 15) / (m.armLen * 0.9 - h - 15), 0, 1);
+    var cuffLen = m.wrist + 4;           // 袖頭完成長（唔計搭位）
+    var pleat = 2.5, nPleat = 2;
+    var slitX = 0, pleatPts = [];
+    if (useCuff) {
+      hemW = Math.min(bicep, cuffLen + nPleat * pleat);
+      slitX = hemW / 4;                  // 袖衩喺後半中間
+    }
     var hF = P(-hemW / 2, len), hB = P(hemW / 2, len);
+    var hemPts = [hB];
+    if (useCuff) {
+      // 袖衩 + 兩個褶（褶向袖衩方向倒）
+      hemPts.push(P(slitX, len));
+      for (var k = 0; k < nPleat; k++) {
+        var x0 = slitX - 2.5 - k * (pleat + 1.5);
+        pleatPts.push(P(x0, len), P(x0 - pleat, len));
+      }
+      hemPts = hemPts.concat(pleatPts);
+    }
+    hemPts.push(hF);
 
     var edges = [
       bezEdge('cap', capList),
       { name: 'seamB', pts: [c.Ub, hB] },
-      { name: 'hem', pts: [hB, hF] },
+      { name: 'hem', pts: hemPts },
       { name: 'seamF', pts: [hF, c.Uf] }
     ];
     var pc = {
       key: 'sleeve', zh: '袖', en: 'SLEEVE', mirror: false, edges: edges, fold: null, darts: [],
-      guides: [{ pts: [c.Uf, c.Ub], dash: [0.6, 0.3] }],
+      guides: [{ pts: [c.Uf, c.Ub], dash: [0.6, 0.3] }].concat(useCuff ? [
+        { pts: [P(slitX, len), P(slitX, len - 10)], dash: null, zh: '袖衩', en: 'SLIT' }
+      ] : []),
       marks: [],
-      notches: [{ edge: 'cap', p: nF, count: 1 }, { edge: 'cap', p: c.T, count: 1 }, { edge: 'cap', p: nB, count: 2 }],
-      grain: [P(c.Ub.x * 0.35, Math.min(h * 0.6, len - 6)), P(c.Ub.x * 0.35, len - 2.5)],
+      notches: [{ edge: 'cap', p: nF, count: 1 }, { edge: 'cap', p: c.T, count: 1 }, { edge: 'cap', p: nB, count: 2 }]
+        .concat(pleatPts.map(function (p) { return { edge: 'hem', p: p, count: 1 }; })),
+      grain: useCuff ? [P(1.5, h + 2), P(1.5, len - 2.5)]
+        : [P(c.Ub.x * 0.35, Math.min(h * 0.6, len - 6)), P(c.Ub.x * 0.35, len - 2.5)],
       label: { p: P(c.Uf.x * 0.3, len - h >= 10 ? h + 4 : h * 0.45) },
       cut: 2, center: null, hemY: len, cutPair: true
     };
@@ -411,7 +442,155 @@
       { kind: 'edge', edge: 'cap', zh: '袖山', en: 'Cap', frac: 0.3 },
       { kind: 'text', p: P(0.5, h * 0.6), zh: '袖山高 ' + f1(h), en: 'Cap ht ' + f1(h), angle: -90 }
     ];
-    pc.info = { capHeight: h, capLen: capTotal, capEase: capTotal - AH, bicep: bicep, hemW: hemW, len: len };
+    pc.info = { capHeight: h, capLen: capTotal, capEase: capTotal - AH, bicep: bicep, hemW: hemW, len: len,
+      cuff: useCuff ? { len: cuffLen, h: cuffH } : null };
+    if (st.cuff === 'band' && !useCuff) warnings.push('袖頭只適用於長袖或七分袖，已略過。');
+    return pc;
+  }
+
+  /* ---------- 彼得潘圓領 ---------- */
+  // 傳統做法：前後片喺側頸點對齊，肩點重疊 2 cm，沿領口描出領底線，再向外畫領闊
+  function collar(st, back, front, warnings) {
+    if (st.neckline === 'v' || st.neckline === 'square') {
+      warnings.push('彼得潘圓領只配圓領／一字領領口，V 領／方領已略過衣領。');
+      return null;
+    }
+    var w = clamp(st.collarW || 7, 3, 15);
+    var bN = back.edges[0], fN = front.edges[0];
+    var Sb = back._.S, b = back._.dir, Sf = front._.S, f = front._.dir;
+    var pb = P(-b.y, b.x), pf = P(-f.y, f.x);
+    var shLen = G.dist(Sb, back._.tip);
+    function L(v) { var a = v.x * f.x + v.y * f.y, c = v.x * pf.x + v.y * pf.y; return G.sub(G.mul(b, a), G.mul(pb, c)); }
+    function rot(v, t) { return P(v.x * Math.cos(t) - v.y * Math.sin(t), v.x * Math.sin(t) + v.y * Math.cos(t)); }
+    var th = 2 / shLen;
+    var tipTest = rot(L(G.sub(front._.tip, Sf)), th);
+    if (tipTest.x * pb.x + tipTest.y * pb.y < 0) th = -th;
+    function map(p) { return G.add(Sb, rot(L(G.sub(p, Sf)), th)); }
+
+    var neckBez = bN.bez.concat(reverseBez(fN.bez.map(function (bz) { return bz.map(map); })));
+    var neck = bezEdge('neck', neckBez);
+    var np = neck.pts, n = np.length;
+    // 外邊：向外（遠離頸）偏移 w
+    function nrm(i) {
+      var a = np[Math.max(0, i - 1)], c = np[Math.min(n - 1, i + 1)];
+      var t = G.norm(G.sub(c, a)); return P(-t.y, t.x);
+    }
+    var outer = np.map(function (p, i) { return G.add(p, G.mul(nrm(i), w)); });
+    // 前端圓角
+    var CF = np[n - 1], nEnd = nrm(n - 1), r = w * 0.9;
+    var outerLen = G.polyLen(outer);
+    var A = G.pointAt(outer, outerLen - r);
+    var frontEdge = [[A.p, G.add(A.p, G.mul(A.t, r * 0.6)), G.add(CF, G.mul(nEnd, w * 0.55)), CF]];
+    // 外邊用 4 段平滑曲線（由 CB 到 A）
+    var cut = [];
+    for (var i = 0; i <= 4; i++) cut.push(G.pointAt(outer, (outerLen - r) * i / 4));
+    cut[0] = { p: outer[0], t: P(1, 0) };
+    cut[4] = A;
+    var outerBez = [];
+    for (i = 0; i < 4; i++) {
+      var p0 = cut[i], p1 = cut[i + 1], d = G.dist(p0.p, p1.p) / 3;
+      outerBez.push([p0.p, G.add(p0.p, G.mul(p0.t, d)), G.sub(p1.p, G.mul(p1.t, d)), p1.p]);
+    }
+    var edges = [
+      neck,
+      bezEdge('front', reverseBez(frontEdge)),
+      bezEdge('outer', reverseBez(outerBez)),
+      { name: 'center', pts: [outer[0], np[0]] }
+    ];
+    var pc = {
+      key: 'collar', zh: '衣領', en: 'COLLAR', mirror: false, edges: edges, fold: 'center', darts: [],
+      guides: [], marks: [], notches: [{ edge: 'neck', p: Sb, count: 1 }],
+      grain: [P(1.5, np[0].y + 0.8), P(1.5, outer[0].y - 0.8)],
+      foldZh: '後中對摺', foldEn: 'CB FOLD',
+      label: { p: G.lerp(np[Math.floor(n * 0.35)], outer[Math.floor(n * 0.35)], 0.45) },
+      cut: 1, qty: 2, cutZh: '裁 2 片對摺（面領＋底領）', cutEn: 'CUT 2 ON FOLD (UPPER + UNDER)', small: true
+    };
+    pc.dims = [
+      { kind: 'edge', edge: 'neck', zh: '領底', en: 'Neck', inside: true, frac: 0.6 },
+      { kind: 'text', p: G.add(outer[0], P(3.5, 0.9)), zh: '領闊 ' + f1(w), en: 'Width ' + f1(w) }
+    ];
+    return pc;
+  }
+
+  /* ---------- 前貼邊 ---------- */
+  function facing(st, front) {
+    var d = front._, C = d.C, S = d.S, ext = d.ext, yHc = d.yHc;
+    var fw = Math.min(7, d.dX - d.dW / 2 - 1, d.w - 3);
+    var Ps = G.add(S, G.mul(d.dir, Math.min(3, G.dist(S, d.tip) - 2)));
+    var perp = P(-d.dir.y, d.dir.x);
+    var yJ = Math.min(front.yB, yHc - 3);
+    var Q = P(fw, yJ);
+    var inner = [[Ps, G.add(Ps, G.mul(perp, (yJ - Ps.y) * 0.5)), P(fw, yJ - (yJ - Ps.y) * 0.45), Q]];
+    var neck = front.edges[0];
+    var edges = [
+      neck.bez ? bezEdge('neck', neck.bez) : { name: 'neck', pts: neck.pts.slice() },
+      { name: 'shoulder', pts: [S, Ps] },
+      bezEdge('inner', inner),
+      { name: 'innerLine', pts: [Q, P(fw, yHc)] },
+      { name: 'hem', pts: [P(fw, yHc), P(0, yHc), P(-ext, yHc)] },
+      { name: 'center', pts: [P(-ext, yHc), P(-ext, C.y)] },
+      { name: 'extTop', pts: [P(-ext, C.y), C] }
+    ];
+    var pc = {
+      key: 'facing', zh: '前貼邊', en: 'FRONT FACING', mirror: true, edges: edges, fold: null, darts: [],
+      guides: [{ pts: [C, P(0, yHc)], dash: [1, 0.3, 0.2, 0.3], zh: '前中線', en: 'CF' }],
+      marks: [], notches: [],
+      grain: [P(fw * 0.55, Math.max(C.y, S.y + 6) + 2), P(fw * 0.55, yHc - 3)],
+      label: { p: P(fw * 0.4, (front.yB + yHc) / 2) },
+      cut: 2, cutZh: '裁 2 片＋燙朴 2 片', cutEn: 'CUT 2 + 2 INTERFACING', small: true
+    };
+    pc.dims = [{ kind: 'edge', edge: 'center', zh: '長', en: 'Length' }];
+    return pc;
+  }
+
+  /* ---------- 袖頭 ---------- */
+  function cuffPiece(info) {
+    var Lc = info.len + 2.5, H = info.h; // 搭位 2.5
+    var edges = [
+      { name: 'top', pts: [P(0, 0), P(Lc, 0)] },
+      { name: 'right', pts: [P(Lc, 0), P(Lc, 2 * H)] },
+      { name: 'bottom', pts: [P(Lc, 2 * H), P(0, 2 * H)] },
+      { name: 'left', pts: [P(0, 2 * H), P(0, 0)] }
+    ];
+    var pc = {
+      key: 'cuff', zh: '袖頭', en: 'CUFF', mirror: false, edges: edges, fold: null, darts: [],
+      guides: [{ pts: [P(0, H), P(Lc, H)], dash: [1, 0.3, 0.2, 0.3], zh: '摺線', en: 'FOLD LINE' }],
+      marks: [{ type: 'button', p: P(Lc - 1.25, H / 2) }, { type: 'buttonhole', p: P(1.25, H / 2) }],
+      notches: [], grain: null,
+      label: { p: P(Lc * 0.4, H + 1.3) },
+      cut: 2, cutZh: '裁 2 片＋燙朴 2 片', cutEn: 'CUT 2 + 2 INTERFACING', small: true
+    };
+    // 布紋線同長邊平行
+    pc.grain = [P(2.5, 2 * H - 0.9), P(Lc - 2.5, 2 * H - 0.9)];
+    pc.dims = [{ kind: 'below', a: P(0, 2 * H), b: P(Lc, 2 * H), zh: '袖頭長 ' + f1(Lc) + '（連搭位 2.5）', en: 'Cuff ' + f1(Lc) }];
+    return pc;
+  }
+
+  /* ---------- 胸前貼袋 ---------- */
+  function pocketPiece(st, m, front) {
+    var w = clamp(Math.round(m.bust / 8), 9, 15), h = w + 1, top = 3, ch = 1.5;
+    var edges = [
+      { name: 'top', pts: [P(0, 0), P(w, 0)] },
+      { name: 'right', pts: [P(w, 0), P(w, top + h - ch)] },
+      { name: 'bottom', pts: [P(w, top + h - ch), P(w / 2, top + h), P(0, top + h - ch)] },
+      { name: 'left', pts: [P(0, top + h - ch), P(0, 0)] }
+    ];
+    var both = st.pocket === 'both';
+    var pc = {
+      key: 'pocket', zh: '貼袋', en: 'POCKET', mirror: false, edges: edges, fold: null, darts: [],
+      guides: [{ pts: [P(0, top), P(w, top)], dash: [1, 0.3, 0.2, 0.3], zh: '向內摺', en: 'FOLD' }],
+      marks: [], notches: [],
+      grain: [P(w * 0.8, top + 1.5), P(w * 0.8, top + h - 2.5)],
+      label: { p: P(w * 0.42, top + h * 0.45) },
+      cut: both ? 2 : 1, cutZh: both ? '裁 2 片' : '裁 1 片', cutEn: both ? 'CUT 2' : 'CUT 1', small: true
+    };
+    // 前片上嘅口袋位
+    var d = front._;
+    var cx = d.dX + 1.5, y0 = front.yB - 7;
+    var side = { left: '左胸', right: '右胸', both: '兩邊胸' }[st.pocket];
+    var pts = [P(cx - w / 2, y0), P(cx + w / 2, y0), P(cx + w / 2, y0 + h - ch), P(cx, y0 + h), P(cx - w / 2, y0 + h - ch)];
+    front.guides.push({ pts: pts, dash: [0.5, 0.3], closed: true, zh: side + '口袋位', en: 'POCKET' });
+    pc.dims = [{ kind: 'below', a: P(0, top + h), b: P(w, top + h), zh: '袋闊 ' + w, en: 'Width ' + w }];
     return pc;
   }
 
@@ -424,6 +603,12 @@
     if (st.sleeve && st.sleeve !== 'none') { sl = sleeve(m, st, bod, warnings); pieces.push(sl); }
     var info = bod.info;
     if (sl) Object.assign(info, { sleeve: sl.info });
+    var extras = [];
+    if (st.collar === 'peterpan') { var col = collar(st, bod.back, bod.front, warnings); if (col) extras.push(col); }
+    if (st.opening && st.facing) extras.push(facing(st, bod.front));
+    if (sl && sl.info.cuff) extras.push(cuffPiece(sl.info.cuff));
+    if (st.pocket && st.pocket !== 'none') extras.push(pocketPiece(st, m, bod.front));
+    pieces = pieces.concat(extras);
     return { back: bod.back, front: bod.front, sleeve: sl, pieces: pieces, info: info, warnings: warnings, style: st };
   }
 

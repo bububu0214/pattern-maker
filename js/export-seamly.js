@@ -128,8 +128,9 @@
       pc.guides.forEach(function (gd) {
         var ids = gd.pts.map(function (p) { return point(T(p), nm()); });
         for (var i = 1; i < ids.length; i++) if (ids[i] !== ids[i - 1]) line(ids[i - 1], ids[i], 'dashLine');
+        if (gd.closed && ids.length > 2) line(ids[ids.length - 1], ids[0], 'dashLine');
       });
-      pc.marks.forEach(function (mk) { point(T(mk.p), prefix + (mk.type === 'bp' ? 'BP' : 'Btn') + (++seq)); });
+      pc.marks.forEach(function (mk) { point(T(mk.p), prefix + ({ bp: 'BP', button: 'Btn', buttonhole: 'Bh' }[mk.type] || 'M') + (++seq)); });
 
       // modeling 複本 + piece
       var detNodes = nodes.map(function (nd) {
@@ -144,9 +145,10 @@
       });
 
       var gTop = T(pc.grain[0]), gBot = T(pc.grain[1]);
+      var gRot = (Math.atan2(-(gTop.y - gBot.y), gTop.x - gBot.x) * 180 / Math.PI + 360) % 360;
       var lab = T(pc.label.p);
       var did = ++id;
-      var cutTxt = pc.cut === 1 ? 'Cut 1 on fold' : 'Cut 2 (mirror pair)';
+      var cutTxt = pc.cutEn ? pc.cutEn.charAt(0) + pc.cutEn.slice(1).toLowerCase() : (pc.cut === 1 ? 'Cut 1 on fold' : 'Cut 2 (mirror pair)');
       details.push(
         '<detail ' + attrs({
           closed: 1, forbidFlipping: 'false', hideMainPath: 'false', id: did, inLayout: 'true', mx: 0, my: 0,
@@ -154,13 +156,13 @@
         }) + '>\n' +
         '  <data ' + attrs({
           annotation: '', fontSize: 0, height: 4, letter: letter, mx: n((lab.x - 4.5) * PX), my: n(lab.y * PX),
-          onFold: pc.fold ? 'true' : 'false', quantity: pc.cut, rotation: 0, visible: 'true', width: 9
+          onFold: pc.fold ? 'true' : 'false', quantity: pc.qty || pc.cut, rotation: 0, visible: 'true', width: 9
         }) + '>\n' +
         '    <line ' + attrs({ alignment: 4, bold: 'true', italic: 'false', sfIncrement: 2, text: title }) + '/>\n' +
         '    <line ' + attrs({ alignment: 4, bold: 'false', italic: 'false', sfIncrement: 0, text: cutTxt }) + '/>\n' +
         '  </data>\n' +
         '  <grainline ' + attrs({
-          arrows: 0, length: n(G.dist(gTop, gBot)), mx: n(gBot.x * PX), my: n(gBot.y * PX), rotation: 90, visible: 'true'
+          arrows: 0, length: n(G.dist(gTop, gBot)), mx: n(gBot.x * PX), my: n(gBot.y * PX), rotation: n(gRot), visible: 'true'
         }) + '/>\n' +
         '  <nodes>\n    ' + detNodes.join('\n    ') + '\n  </nodes>\n' +
         '</detail>');
@@ -168,7 +170,10 @@
 
     // 由左至右排：後片、前片（鏡像，側縫相對）、袖
     var cursor = 0;
-    var titles = { back: ['Back', 'A', 'B'], front: ['Front', 'B', 'F'], sleeve: ['Sleeve', 'C', 'S'] };
+    var titles = {
+      back: ['Back', 'A', 'B'], front: ['Front', 'B', 'F'], sleeve: ['Sleeve', 'C', 'S'], collar: ['Collar', 'D', 'K'],
+      facing: ['Front facing', 'E', 'H'], cuff: ['Cuff', 'F', 'U'], pocket: ['Pocket', 'G', 'P']
+    };
     res.pieces.forEach(function (pc) {
       var m = pc.mirror ? -1 : 1;
       var all = [];

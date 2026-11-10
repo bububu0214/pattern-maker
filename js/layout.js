@@ -92,7 +92,7 @@
 
     // 輔助線
     pc.guides.forEach(function (gd) {
-      ents.push(path(gd.pts, 'GUIDE', false, gd.dash));
+      ents.push(path(gd.pts, 'GUIDE', !!gd.closed, gd.dash));
       if (gd.zh) {
         var a = gd.pts[0], b = gd.pts[gd.pts.length - 1];
         var vertical = Math.abs(b.x - a.x) < Math.abs(b.y - a.y);
@@ -106,6 +106,10 @@
       if (mk.type === 'bp') {
         ents.push(path(circle(mk.p, 0.5), 'GUIDE', true));
         ents.push(text(G.add(mk.p, P(-1.3, -0.6)), '胸點', 'BP', DIM, 0, 'DIM'));
+      } else if (mk.type === 'buttonhole') {
+        ents.push(path([G.add(mk.p, P(-0.8, 0)), G.add(mk.p, P(0.8, 0))], 'NOTCH'));
+        ents.push(path([G.add(mk.p, P(-0.8, -0.25)), G.add(mk.p, P(-0.8, 0.25))], 'NOTCH'));
+        ents.push(path([G.add(mk.p, P(0.8, -0.25)), G.add(mk.p, P(0.8, 0.25))], 'NOTCH'));
       } else if (mk.type === 'button') {
         ents.push(path(circle(mk.p, 0.6), 'NOTCH', true));
         ents.push(path([G.add(mk.p, P(-0.9, 0)), G.add(mk.p, P(0.9, 0))], 'NOTCH'));
@@ -129,7 +133,9 @@
     ents.push(path([g0, g1], 'GRAIN'));
     ents.push(arrowHead(g0, g1, 'GRAIN'));
     ents.push(arrowHead(g1, g0, 'GRAIN'));
-    ents.push(text(P(g0.x - 0.45, (g0.y + g1.y) / 2), '布紋線', 'GRAINLINE', DIM, -90, 'GRAIN'));
+    var gd0 = G.norm(G.sub(g1, g0)), gn = P(gd0.y, -gd0.x);
+    if (gn.y > 0 || (Math.abs(gn.y) < 1e-6 && gn.x > 0)) gn = G.mul(gn, -1);
+    ents.push(text(G.add(G.lerp(g0, g1, 0.5), G.mul(gn, 0.45)), '布紋線', 'GRAINLINE', DIM, angleOf(g0, g1), 'GRAIN'));
 
     // 對摺記號
     if (pc.fold) {
@@ -144,13 +150,13 @@
     }
 
     // 片名
-    var lp0 = pc.label.p;
-    var cutZh = pc.cut === 1 ? '裁 1 片（對摺）' : '裁 2 片（左右對稱）';
-    var cutEn = pc.cut === 1 ? 'CUT 1 ON FOLD' : 'CUT 2 (MIRROR PAIR)';
-    ents.push(text(lp0, pc.zh, pc.en, TITLE, 0, 'TEXT'));
-    ents.push(text(P(lp0.x, lp0.y + 1.3), cutZh, cutEn, 0.5, 0, 'TEXT'));
-    ents.push(text(P(lp0.x, lp0.y + 2.2), sa > 0 ? '已含縫份 ' + sa + ' cm' : '無縫份（淨樣）',
-      sa > 0 ? 'SEAM ALLOWANCE ' + sa + ' CM INCLUDED' : 'NO SEAM ALLOWANCE', 0.42, 0, 'TEXT'));
+    var lp0 = pc.label.p, k = pc.small ? 0.75 : 1;
+    var cutZh = pc.cutZh || (pc.cut === 1 ? '裁 1 片（對摺）' : '裁 2 片（左右對稱）');
+    var cutEn = pc.cutEn || (pc.cut === 1 ? 'CUT 1 ON FOLD' : 'CUT 2 (MIRROR PAIR)');
+    ents.push(text(lp0, pc.zh, pc.en, TITLE * k, 0, 'TEXT'));
+    ents.push(text(P(lp0.x, lp0.y + 1.3 * k), cutZh, cutEn, 0.5 * k, 0, 'TEXT'));
+    ents.push(text(P(lp0.x, lp0.y + 2.2 * k), sa > 0 ? '已含縫份 ' + sa + ' cm' : '無縫份（淨樣）',
+      sa > 0 ? 'SEAM ALLOWANCE ' + sa + ' CM INCLUDED' : 'NO SEAM ALLOWANCE', 0.42 * k, 0, 'TEXT'));
 
     if (opt.dims) {
       var maxY = Math.max.apply(null, seam.map(function (p) { return p.y; }));
@@ -226,29 +232,53 @@
       if (pc.mirror) ents = transform(ents, function (p) { return P(-p.x, p.y); }, true);
       return { ents: ents, box: entsBox(ents) };
     });
-    var all = [], x = M, maxH = 0;
-    built.forEach(function (b) {
-      var dx = x - b.box.x0, dy = M - b.box.y0;
+    // 排版：限定總闊度（前後片並排嘅闊度），每塊放喺「最高可放嘅位置」（左下優先）
+    var widths = built.map(function (b) { return b.box.x1 - b.box.x0; });
+    var maxW = Math.max(widths[0] + GAP + (widths[1] || 0), Math.max.apply(null, widths), 60);
+    var placed = [], all = [];
+    built.forEach(function (b, i) {
+      var bw = widths[i], bh = b.box.y1 - b.box.y0;
+      var xs = [M].concat(placed.map(function (r) { return r.x1 + GAP; }));
+      var best = null;
+      xs.forEach(function (x) {
+        if (x + bw > M + maxW + 0.01) return;
+        var y = M;
+        placed.forEach(function (r) {
+          if (r.x0 < x + bw + GAP && r.x1 + GAP > x) y = Math.max(y, r.y1 + GAP);
+        });
+        if (!best || y < best.y - 0.01 || (Math.abs(y - best.y) < 0.01 && x < best.x)) best = { x: x, y: y };
+      });
+      var dx = best.x - b.box.x0, dy = best.y - b.box.y0;
       all = all.concat(transform(b.ents, function (p) { return P(p.x + dx, p.y + dy); }));
-      x += (b.box.x1 - b.box.x0) + GAP;
-      maxH = Math.max(maxH, b.box.y1 - b.box.y0);
+      placed.push({ x0: best.x, y0: best.y, x1: best.x + bw, y1: best.y + bh });
     });
-    var xEnd = x - GAP;
-    var height = maxH + 2 * M, width = xEnd + M;
+    var xEnd = Math.max.apply(null, placed.map(function (r) { return r.x1; }));
+    var yEnd = Math.max.apply(null, placed.map(function (r) { return r.y1; }));
+    var width = xEnd + M, height = yEnd + M;
 
-    // 10cm 測試方格：放喺唔會令 A4 頁數增加嘅位置
-    var TW = 19, TH = 27.7;
+    // 10cm 測試方格：搵一個唔會令 A4 頁數增加嘅空位（PDF 封面一定有測試方格）
+    var TW = 19, TH = 27.7, SQ = 10;
     var pages = function (w, h) { return Math.ceil(w / TW) * Math.ceil(h / TH); };
     var base = pages(width, height);
-    var firstH = built[0].box.y1 - built[0].box.y0;
+    var limW = Math.ceil(width / TW) * TW, limH = Math.ceil(height / TH) * TH;
+    var spot = null;
+    var xs = [M].concat(placed.map(function (r) { return r.x1 + 1.5; }));
+    xs.forEach(function (x) {
+      if (x + SQ + 0.5 > limW) return;
+      var ys = [M].concat(placed.map(function (r) { return r.y1 + 1.5; }));
+      ys.forEach(function (y) {
+        if (y + SQ + 0.5 > limH) return;
+        var hit = placed.some(function (r) { return r.x0 < x + SQ + 1.5 && r.x1 + 1.5 > x && r.y0 < y + SQ + 1.5 && r.y1 + 1.5 > y; });
+        if (hit) return;
+        if (!spot || y < spot.y || (y === spot.y && x < spot.x)) spot = { x: x, y: y };
+      });
+    });
     var sq = [];
-    if (pages(xEnd + GAP + 10 + M, height) === base) {
-      sq = testSquare(xEnd + GAP, M); width = xEnd + GAP + 10 + M;
-    } else if (pages(xEnd + 1.5 + 10 + 0.5, height) === base) {
-      sq = testSquare(xEnd + 1.5, M); width = xEnd + 1.5 + 10 + 0.5;
-    } else if (pages(width, M + firstH + 2 + 10 + M) === base) {
-      sq = testSquare(M + 2, M + firstH + 2); height = Math.max(height, M + firstH + 2 + 10 + M);
-    } // 否則唔放（PDF 封面一定有測試方格）
+    if (spot && pages(Math.max(width, spot.x + SQ + 0.5), Math.max(height, spot.y + SQ + 0.5)) === base) {
+      sq = testSquare(spot.x, spot.y);
+      width = Math.max(width, spot.x + SQ + 0.5);
+      height = Math.max(height, spot.y + SQ + 0.5);
+    }
 
     return { entities: all.concat(sq), width: width, height: Math.max(height, 14) };
   }
