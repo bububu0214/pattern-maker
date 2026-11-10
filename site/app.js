@@ -153,7 +153,7 @@
     const f = flow.fabric ? FABRICS[flow.fabric] : null;
     p.innerHTML = `<div class="pic">${pic((flow.fabric && s.photos[flow.fabric]) || s.cover, s.name)}</div>
       <div class="info">
-        <h3>${esc(s.name)}</h3>
+        <h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3>
         <div class="line"><span>布料</span><b>${f ? esc(f.name) : "—"}</b></div>
         <div class="line"><span>製作期</span><b>${s.days} 日</b></div>
         <div class="line"><span>價錢</span><b>${money(priceOf())}</b></div>
@@ -167,7 +167,7 @@
         ${CUSTOM_STYLES.map(s => `
           <button class="style-opt ${flow.style === s.id ? "on" : ""}" data-style="${s.id}" type="button">
             <div class="thumb">${pic(s.cover, s.name)}</div>
-            <div><h3>${esc(s.name)}</h3><p>${esc(s.desc)}</p><span class="tag">${Object.keys(s.photos).length} 款布料 · ${s.days} 日</span></div>
+            <div><h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3><p>${esc(s.desc)}</p><span class="tag">${Object.keys(s.photos).length} 款布料 · ${s.days} 日</span></div>
             <div class="price">由 ${money(s.base)}</div>
           </button>`).join("")}
       </div>
@@ -333,7 +333,7 @@
       const stock = Object.values(r.sizes).reduce((a, b) => a + b, 0);
       return `<button class="card" data-ready="${r.id}" type="button">
         <div class="pic">${pic(r.photos[0], r.name)}</div>
-        <div class="meta"><h3>${esc(r.name)}</h3><span class="price">${money(r.price)}</span></div>
+        <div class="meta"><h3>${esc(r.name)}<span class="en">${esc(r.en)}</span></h3><span class="price">${money(r.price)}</span></div>
         <div class="sub">${esc(r.cat)} ${stock <= 3 ? `<span class="tag rust">只剩 ${stock} 件</span>` : ""}</div>
       </button>`;
     }).join("");
@@ -359,7 +359,7 @@
         <div class="pic">${pic(r.photos[0], r.name)}</div>
         <div class="body">
           <div class="eyebrow">ready to wear</div>
-          <h2>${esc(r.name)}</h2>
+          <h2>${esc(r.name)}<span class="en">${esc(r.en)}</span></h2>
           <div>${money(r.price)}</div>
           <p class="lede">${esc(r.desc)}</p>
           <div class="fabric-note">${esc(r.fabric)}</div>

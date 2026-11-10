@@ -27,7 +27,7 @@ const MEASURES = {
 // photos: one photo per fabric, so the preview changes when the customer picks a fabric.
 const CUSTOM_STYLES = [
   {
-    id: "collar-blouse", name: "小圓領拼布恤衫", base: 680, days: "21–28",
+    id: "collar-blouse", en: "Peter Pan Collar Blouse", name: "小圓領拼布恤衫", base: 680, days: "21–28",
     desc: "前幅用印花或刺繡布，袖用素色布拼接，袖口收褶。",
     cover: "img/blouse-collage.jpg",
     photos: { snowcat: "img/blouse-snowcat.jpg", embroid: "img/blouse-embroid.jpg", cats: "img/blouse-cats.jpg", stripe: "img/blouse-stripe.jpg", floral: "img/blouse-floral.jpg" },
@@ -35,14 +35,14 @@ const CUSTOM_STYLES = [
     measures: ["height", "shoulder", "chest", "sleeve", "top_len"],
   },
   {
-    id: "v-vest", name: "V 領背心", base: 580, days: "18–25",
+    id: "v-vest", en: "V-neck Vest", name: "V 領背心", base: 580, days: "18–25",
     desc: "短身 V 領，三粒金屬鈕，內裡用黑色棉布。",
     cover: "img/plaid-vest.jpg",
     photos: { plaid: "img/plaid-vest.jpg", denim: "img/denim-vest.jpg" },
     measures: ["height", "shoulder", "chest", "waist", "top_len"],
   },
   {
-    id: "straight-pants", name: "高腰直腳褲", base: 620, days: "18–25",
+    id: "straight-pants", en: "High-waist Straight Trousers", name: "高腰直腳褲", base: 620, days: "18–25",
     desc: "高腰，前中一粒鈕，褲腳微窄，九分長度。",
     cover: "img/plaid-pants.jpg",
     photos: { plaid: "img/plaid-pants.jpg", denim: "img/denim-pants.jpg" },
@@ -50,7 +50,7 @@ const CUSTOM_STYLES = [
     measures: ["height", "waist", "hip", "pant_len"],
   },
   {
-    id: "vest-set", name: "背心褲套裝", base: 1120, days: "25–32",
+    id: "vest-set", en: "Vest & Trouser Set", name: "背心褲套裝", base: 1120, days: "25–32",
     desc: "V 領背心配高腰直腳褲，同一款布，一套買平啲。",
     cover: "img/plaid-set.jpg",
     photos: { plaid: "img/plaid-set.jpg", denim: "img/denim-set.jpg" },
@@ -60,15 +60,15 @@ const CUSTOM_STYLES = [
 
 // Section 2: fixed ready-made styles with standard sizes.
 const READY = [
-  { id: "r-lace", name: "波浪蕾絲背心上衣", price: 780, cat: "上衣", sizes: { S: 1, M: 2, L: 1 },
+  { id: "r-lace", en: "Scallop Lace Shell Top", name: "波浪蕾絲背心上衣", price: 780, cat: "上衣", sizes: { S: 1, M: 2, L: 1 },
     photos: ["img/lace-top.jpg"], fabric: "黑白網紗蕾絲，波浪刺繡，內裡黑色襯布", desc: "層層波浪花邊，下擺透少少，單著或者疊恤衫都得。" },
-  { id: "r-london", name: "倫敦花園短袖上衣", price: 520, cat: "上衣", sizes: { S: 2, M: 3, L: 0 },
+  { id: "r-london", en: "London Garden Tee", name: "倫敦花園短袖上衣", price: 520, cat: "上衣", sizes: { S: 2, M: 3, L: 0 },
     photos: ["img/london-top.jpg"], fabric: "米色棉麻，鬱金香配倫敦塔橋印花", desc: "闊身短袖，後背一排紫色鈕。" },
-  { id: "r-vintage", name: "復古女孩拼條紋恤衫", price: 680, cat: "上衣", sizes: { S: 1, M: 1, L: 1 },
+  { id: "r-vintage", en: "Vintage Girls Split Shirt", name: "復古女孩拼條紋恤衫", price: 680, cat: "上衣", sizes: { S: 1, M: 1, L: 1 },
     photos: ["img/vintage-shirt.jpg"], fabric: "復古女孩印花棉 × 紅白細條紋棉", desc: "左右兩邊用唔同布，袖口收褶。" },
-  { id: "r-bird", name: "月亮小鳥連身裙", price: 880, cat: "連身裙", sizes: { S: 0, M: 2, L: 1 },
+  { id: "r-bird", en: "Moon & Bird Dress", name: "月亮小鳥連身裙", price: 880, cat: "連身裙", sizes: { S: 0, M: 2, L: 1 },
     photos: ["img/bird-dress.jpg"], fabric: "深紫底，白月亮同小鳥印花", desc: "小圓領，前排鈕，配同色腰帶。" },
-  { id: "r-skirt", name: "寶藍條紋半截裙", price: 620, cat: "下身", sizes: { S: 2, M: 2, L: 2 },
+  { id: "r-skirt", en: "Royal Stripe Skirt", name: "寶藍條紋半截裙", price: 620, cat: "下身", sizes: { S: 2, M: 2, L: 2 },
     photos: ["img/stripe-skirt.jpg"], fabric: "米白泡泡布 × 寶藍條紋，寶藍腰頭", desc: "闊腰頭，側邊一個鬆緊袋口嘅口袋。" },
 ];
 
