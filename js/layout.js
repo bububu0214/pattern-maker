@@ -240,7 +240,8 @@
     });
     // 排版：限定總闊度（前後片並排嘅闊度），每塊放喺「最高可放嘅位置」（左下優先）
     var widths = built.map(function (b) { return b.box.x1 - b.box.x0; });
-    var maxW = Math.max(widths[0] + GAP + (widths[1] || 0), Math.max.apply(null, widths), 60);
+    var sortedW = widths.slice().sort(function (a, b) { return b - a; });
+    var maxW = Math.max(widths[0] + GAP + (widths[1] || 0), sortedW[0] + GAP + (sortedW[1] || 0), 60);
     var placed = [], all = [];
     built.forEach(function (b, i) {
       var bw = widths[i], bh = b.box.y1 - b.box.y0;

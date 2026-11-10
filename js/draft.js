@@ -736,10 +736,76 @@
     return [];
   }
 
+  /* ---------- 連身裙 ---------- */
+  var FULL_SHAPES = ['aline', 'gathered', 'pleated', 'halfcircle', 'circle'];
+  function draftDress(m, ease, st) {
+    var zipBack = st.zip !== 'side';
+    if (st.dressType === 'shift') {
+      // 無腰線：衣身直接長落去
+      var sh = Object.assign({}, st, {
+        garment: 'top', hemLen: st.skirtLen || 58,
+        hemShape: FULL_SHAPES.indexOf(st.skirtShape) >= 0 ? 'aline' : 'straight',
+        flare: FULL_SHAPES.indexOf(st.skirtShape) >= 0 ? Math.max(4, st.skirtFlare || 6) : 0,
+        cbFold: zipBack ? false : st.cbFold
+      });
+      var r1 = draft(m, ease, sh);
+      if (zipBack) r1.warnings.push('後中裝隱形拉鏈，由後頸向下約 55 cm。');
+      if (st.slit && st.slit !== 'none') r1.warnings.push('無腰線連身裙暫時唔做開衩，已略過。');
+      if (['gathered', 'pleated', 'halfcircle', 'circle'].indexOf(st.skirtShape) >= 0) r1.warnings.push('無腰線連身裙做唔到碎褶／百褶／圓裙，已用 A 字下擺代替。');
+      r1.garment = 'dress'; r1.info.garment = 'dress'; r1.info.dressType = 'shift';
+      return r1;
+    }
+    // 有腰線：上身（腰位）＋ 裙
+    var stTop = Object.assign({}, st, { garment: 'top', hemLen: 0, lengthPreset: 'waist', hemShape: 'straight', flare: 0,
+      cbFold: zipBack ? false : st.cbFold, ruffle: st.ruffle === 'hem' ? 'none' : st.ruffle });
+    var top = draft(m, ease, stTop);
+    var seam = function (keys) {
+      return top.pieces.filter(function (p) { return keys.indexOf(p.key) >= 0; }).reduce(function (sum, p) {
+        var hem = p.edges.filter(function (e) { return e.name === 'hem'; })[0];
+        if (!hem) return sum;
+        var Lh = G.polyLen(hem.pts);
+        (p.darts || []).forEach(function (d) { if (!d.closed) Lh -= G.dist(d.pts[0], d.pts[d.pts.length - 1]); });
+        if (p._ && p._.ext) Lh -= p._.ext;
+        return sum + Lh;
+      }, 0);
+    };
+    var wB = seam(['back', 'backSide']), wF = seam(['front', 'frontSide']);
+    var stSk = Object.assign({}, st, {
+      garment: 'skirt', noBand: true, waistOverride: { back: wB, front: wF },
+      dartXs: { back: top.back._.dX, front: top.front._.dX }, frontDrop: top.info.frontDrop || 0,
+      zip: zipBack ? 'back' : 'side'
+    });
+    var easeSk = Object.assign({}, ease);
+    var sk = PM.draftSkirt(m, easeSk, stSk);
+    var pieces = top.pieces.concat(sk.pieces);
+    // 下擺荷葉邊：跟裙下擺
+    if (st.ruffle === 'hem' && PM.modify) {
+      var hemL = sk.pieces.reduce(function (s2, p) {
+        return s2 + p.edges.filter(function (e) { return e.name === 'hem'; }).reduce(function (t, e) { return t + G.polyLen(e.pts); }, 0);
+      }, 0);
+      pieces.push(PM.modify.ruffle('ruffle', '下擺荷葉邊', 'HEM RUFFLE', hemL, clamp(st.ruffleW || 6, 2, 30), clamp(st.ruffleRatio || 1.8, 1, 3), 2, '（前後各半件）'));
+    }
+    var warnings = top.warnings.concat(sk.warnings);
+    if (zipBack) warnings.push('後中裝隱形拉鏈：上身後中至裙拉鏈止點（腰下約 18 cm）。');
+    if (st.opening) warnings.push('前中開胸只做上身；裙前中照對摺。');
+    var info = Object.assign({}, top.info, {
+      garment: 'dress', dressType: 'waist', skirt: sk.info,
+      waistSeamTop: (wB + wF) * 2,
+      waistSeamSkirt: sk.pieces.reduce(function (s3, p) {
+        var w = p.edges.filter(function (e) { return e.name === 'waist'; })[0];
+        var Lw = G.polyLen(w.pts);
+        (p.darts || []).forEach(function (d) { Lw -= G.dist(d.pts[0], d.pts[d.pts.length - 1]); });
+        return s3 + Lw;
+      }, 0) * 2
+    });
+    return { pieces: pieces, back: top.back, front: top.front, warnings: warnings, style: st, garment: 'dress', info: info };
+  }
+
   function draft(m, ease, style) {
     var st = Object.assign({}, DEFAULT_STYLE, style || {});
     if (st.garment === 'skirt' && PM.draftSkirt) return PM.draftSkirt(m, ease, st);
     if (st.garment === 'trousers' && PM.draftTrousers) return PM.draftTrousers(m, ease, st);
+    if (st.garment === 'dress') return draftDress(m, ease, st);
     var warnings = [];
     var bod = bodice(m, ease, st, warnings);
     var pieces = [bod.back, bod.front];

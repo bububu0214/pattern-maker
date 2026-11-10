@@ -17,7 +17,7 @@
     'trouserLen', 'crotchDepth', 'outseam'];
   var SEL = ['neckline', 'lengthPreset', 'hemShape', 'sleeve', 'fit', 'collar', 'pocket', 'cuff',
     'garment', 'skirtShape', 'skirtLenPreset', 'slit', 'zip', 'yoke', 'yokeFullType', 'ruffle',
-    'trouserShape', 'trouserLenPreset', 'trouserWaist'];
+    'trouserShape', 'trouserLenPreset', 'trouserWaist', 'dressType'];
   var CHK = ['cfFold', 'cbFold', 'dims', 'opening', 'facing', 'princess'];
   var defaults = readForm();
 
@@ -70,7 +70,7 @@
     form.elements.sleevePuff.disabled = form.elements.sleeveGather.disabled = v.sleeve === 'none';
     form.elements.slitLen.disabled = v.slit === 'none';
     // 上衣／半截裙：只顯示用得着嘅欄位
-    Array.prototype.forEach.call(form.querySelectorAll('.only-top, .only-skirt, .only-trousers'), function (el) {
+    Array.prototype.forEach.call(form.querySelectorAll('.only-top, .only-skirt, .only-trousers, .only-dress'), function (el) {
       el.hidden = !el.classList.contains('only-' + v.garment);
     });
     updateTotal();
@@ -166,7 +166,8 @@
       yokeFullType: v.yokeFullType, princess: v.princess,
       sleevePuff: v.sleeve === 'none' ? 0 : (v.sleevePuff || 0), sleeveGather: v.sleeve === 'none' ? 0 : (v.sleeveGather || 0),
       ruffle: v.ruffle, ruffleW: v.ruffleW || 6, ruffleRatio: v.ruffleRatio || 1.8, skirtRatio: v.skirtRatio || 1.6,
-      trouserShape: v.trouserShape, trouserLen: v.trouserLen || v.outseam, trouserWaist: v.trouserWaist
+      trouserShape: v.trouserShape, trouserLen: v.trouserLen || v.outseam, trouserWaist: v.trouserWaist,
+      dressType: v.dressType
     };
     var res = PM.draft(m, ease, style);
     var model = PM.layout(res, { sa: v.sa, dims: v.dims });
@@ -243,6 +244,14 @@
         }).join('') + '</table>';
       return;
     }
+    var dressRows = [];
+    if (i.garment === 'dress' && i.dressType === 'waist' && i.skirt) {
+      dressRows = [
+        ['腰縫長度 上身 / 裙', null, null, f1(i.waistSeamTop) + ' / ' + f1(i.waistSeamSkirt)],
+        ['裙長（腰下）', i.skirt.len],
+        ['下擺圍', i.skirt.hemTotal]
+      ];
+    }
     var rows = [
       ['成品胸圍（連放鬆量）', i.bustTotal, v.bust + v.easeBust],
       ['成品腰圍（連放鬆量）', i.waistTotal, v.fit === 'loose' ? null : v.waist + v.easeWaist]
@@ -266,6 +275,7 @@
         ['袖長 / 袖口', null, null, f1(i.sleeve.len) + ' / ' + f1(i.sleeve.hemW)]
       );
     }
+    rows = rows.concat(dressRows);
     document.getElementById('info').innerHTML = '<table><tr><th>項目</th><th>紙樣（cm）</th><th>參考（cm）</th></tr>' +
       rows.map(function (r) {
         var a = r[3] != null ? r[3] : (r[1] != null ? f1(r[1]) : '');
@@ -304,6 +314,7 @@
   function stamp() {
     var v = current.v;
     if (v.garment === 'trousers') return 'trousers_W' + v.waist + '_H' + v.hip;
+    if (v.garment === 'dress') return 'dress_B' + v.bust + '_W' + v.waist;
     return v.garment === 'skirt' ? 'skirt_W' + v.waist + '_H' + v.hip : 'top_B' + v.bust + '_W' + v.waist;
   }
 
@@ -317,6 +328,11 @@
   var TR_NAMES = { straight: 'straight-leg trousers', slim: 'slim trousers', wide: 'wide-leg trousers' };
   var TRW_NAMES = { zip: 'front fly zip', side: 'side zip', elastic: 'elastic waist' };
   function styleLine(v) {
+    if (v.garment === 'dress') {
+      return (v.dressType === 'shift' ? 'shift dress' : 'dress with waist seam, ' + SK_NAMES[v.skirtShape]) + ', skirt length ' + v.skirtLen +
+        ' cm, ' + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] + ', ' + NAMES.fit[v.fit] +
+        (v.collar === 'peterpan' ? ', Peter Pan collar' : '') + (v.princess ? ', princess seams' : '') + ', ' + v.zip + ' zip';
+    }
     if (v.garment === 'trousers') return TR_NAMES[v.trouserShape] + ', length ' + v.trouserLen + ' cm from waist, ' + TRW_NAMES[v.trouserWaist];
     if (v.garment === 'skirt') {
       return SK_NAMES[v.skirtShape] + ', length ' + v.skirtLen + ' cm from waist' +
@@ -340,7 +356,9 @@
   document.getElementById('dlSeamly').onclick = function () {
     if (!current) return;
     var v = current.v;
-    var desc = v.garment === 'trousers'
+    var desc = v.garment === 'dress'
+      ? 'Women\'s dress: ' + styleLine(v) + '. Bust ' + v.bust + '+' + v.easeBust + ', Waist ' + v.waist + '+' + v.easeWaist + ', Hip ' + v.hip + '+' + v.easeHip + ' (cm)'
+      : v.garment === 'trousers'
       ? 'Women\'s trousers: ' + styleLine(v) + '. Waist ' + v.waist + '+' + v.easeWaist + ', Hip ' + v.hip + '+' + v.easeHip + ', Crotch depth ' + v.crotchDepth + ', Outseam ' + v.outseam + ' (cm)'
       : v.garment === 'skirt'
       ? 'Women\'s skirt: ' + styleLine(v) + '. Waist ' + v.waist + '+' + v.easeWaist + ', Hip ' + v.hip + '+' + v.easeHip + ', Waist to hip ' + v.waistToHip + ' (cm)'
@@ -391,7 +409,8 @@
     if (i.sleeve) lines.push('Sleeve: cap ' + f1(i.sleeve.capLen) + ' (ease ' + f1(i.sleeve.capEase) + '), bicep ' + f1(i.sleeve.bicep) + ', length ' + f1(i.sleeve.len));
     if (v.opening && !v.facing) lines.push('Front facing not included.');
     lines.push('Pieces: ' + current.res.pieces.map(function (p) { return p.en.toLowerCase(); }).join(', '));
-    download(PM.toPDF(current.model, { lines: lines, title: 'Women\'s Top Pattern - ' + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
+    if (v.garment === 'dress') lines.unshift('Dress: ' + (v.dressType === 'shift' ? 'no waist seam' : 'waist seam, ' + SK_NAMES[v.skirtShape]) + ', skirt length ' + v.skirtLen + ' cm');
+    download(PM.toPDF(current.model, { lines: lines, title: (v.garment === 'dress' ? 'Women\'s Dress Pattern - ' : 'Women\'s Top Pattern - ') + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
   };
 
   /* ---------- 上傳圖片（可多張）+ AI 分析 ---------- */
@@ -507,10 +526,11 @@
   var AI_PROMPT = [
     'You are a pattern-making assistant. The images show ONE garment design (sketches or photos of it worn, on a hanger or on a mannequin).',
     'There may be several images of the same garment (front, back, side, close-ups); combine them. Use the back view for the back neckline and back details.',
-    'The generator makes women\'s TOPS (upper-body garments or the bodice of a dress), SKIRTS (half skirts, from the waist down) and TROUSERS (pants and shorts).',
-    'Decide "garment": "top", "skirt" or "trousers" (if several appear, use the one the user asks for, else the more prominent one), then classify its features.',
+    'The generator makes women\'s TOPS, SKIRTS (half skirts, from the waist down), TROUSERS (pants and shorts) and DRESSES.',
+    'Decide "garment": "top", "skirt", "trousers" or "dress" (if several appear, use the one the user asks for, else the more prominent one), then classify its features.',
+    'For a dress: "dressType": "waist" (bodice and skirt joined by a waist seam) or "shift" (no waist seam); describe the bodice with the top fields and the skirt part with the skirt fields.',
     'Reply with ONLY a JSON object, no other text, exactly in this shape:',
-    '{"garment": "top", "isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
+    '{"garment": "top", "dressType": "waist", "isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
     ' "frontNeckDepth": "high|medium|low|deep", "backNeckDepth": "high|medium|low",',
     ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline", "sleeve": "none|short|elbow|long",',
     ' "fit": "fitted|regular|loose", "frontOpening": false, "collar": "none|peterpan|other",',
@@ -653,7 +673,8 @@
   function applyAI(r) {
     if (r.garment === 'trousers') return applyTrousersAI(r);
     if (r.garment === 'skirt') return applySkirtAI(r);
-    setVal('garment', 'top');
+    var isDress = r.garment === 'dress';
+    setVal('garment', isDress ? 'dress' : 'top');
     var v = readForm();
     var neckline = pick(r.neckline, ['round', 'v', 'square', 'boat'], 'round');
     var nw = LEVELS.neckWidth[r.neckWidth]; if (nw == null) nw = 0;
@@ -691,6 +712,17 @@
     setVal('sleevePuff', r.puffSleeve && sleeve !== 'none' ? 5 : 0);
     setVal('sleeveGather', r.sleeveHemGather && sleeve !== 'none' ? 8 : 0);
     setVal('ruffle', pick(r.ruffle, ['none', 'hem', 'sleeve', 'neck'], 'none'));
+    var dressTxt = '';
+    if (isDress) {
+      var dt = pick(r.dressType, ['waist', 'shift'], 'waist');
+      var dsh = pick(r.skirtShape, ['straight', 'pencil', 'aline', 'gathered', 'pleated', 'halfcircle', 'circle'], 'aline');
+      var dlp = pick(r.skirtLength, ['mini', 'knee', 'midi', 'long'], 'knee');
+      setVal('dressType', dt); setVal('skirtShape', dsh); setVal('skirtLenPreset', dlp); setVal('skirtLen', SKIRT_LEN[dlp]);
+      setVal('slit', pick(r.slit, ['none', 'back', 'front', 'side'], 'none')); setVal('zip', pick(r.zip, ['back', 'side'], 'back'));
+      var dcm = num((r.cm || {}).skirtLen, 25, 120);
+      if (dcm != null) { setVal('skirtLen', Math.round(dcm * 2) / 2); setVal('skirtLenPreset', 'custom'); }
+      dressTxt = '連身裙（' + (dt === 'waist' ? '有腰線、' + SK_ZH[dsh] : '無腰線') + '、裙長 ' + form.elements.skirtLen.value + ' cm）、';
+    }
     // 要求入面有具體尺寸就用
     var cm = r.cm || {};
     var lim = { neckWiden: [0, 10], neckDropF: [-5, 25], neckDropB: [0, 20], hemLen: [-15, 90], sleeveLen: [0, 80], flare: [0, 30], collarW: [3, 15], cuffH: [2, 12], yokeDepthB: [3, 25], ruffleW: [2, 30] };
@@ -708,7 +740,7 @@
 
     aiResult.innerHTML = '<div class="ai"><p><b>' + (images.length && imagesOK ? 'AI 睇到：' : 'AI：') + '</b>' + esc(r.summary || '') + '</p>' +
       (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
-      '<p>已設定：' + ZH.neckline[neckline] + '、' + (num(cm.hemLen, -15, 90) != null ? '衫總長 ' + form.elements.totalLen.value + ' cm（腰下 ' + form.elements.hemLen.value + ' cm）' : ZH.length[length]) + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
+      '<p>已設定：' + dressTxt + ZH.neckline[neckline] + '、' + (isDress ? '' : (num(cm.hemLen, -15, 90) != null ? '衫總長 ' + form.elements.totalLen.value + ' cm（腰下 ' + form.elements.hemLen.value + ' cm）' : ZH.length[length]) + '、' + ZH.hem[hem] + '、') + ZH.sleeve[sleeve] + '、' +
       ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
       (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') +
       ({ back: '、後育克', front: '、前育克', both: '、前後育克' }[yoke] || '') + (yoke !== 'none' && yf !== 'none' ? (yf === 'pleat' ? '（中間褶）' : '（碎褶）') : '') +

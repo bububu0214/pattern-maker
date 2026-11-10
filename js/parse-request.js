@@ -72,9 +72,20 @@
     var SKIRT_WORDS = '半截裙|半身裙|短裙|長裙|中長裙|窄裙|鉛筆裙|直身裙|直裙|A\\s*字裙|傘裙|迷你裙|skirt|(?<!連身)裙';
     var TOP_WORDS = '上衣|恤衫|襯衫|T恤|衫|領|袖|top|blouse|shirt';
     var TROUSER_WORDS = '短褲|長褲|西褲|闊腳褲|窄腳褲|直腳褲|直筒褲|鬆緊褲|運動褲|熱褲|七分褲|九分褲|褲(?!袋|耳|頭|裙)|pants|trousers|shorts';
+    var DRESS_WORDS = '連身裙|洋裝|裙裝|恤衫裙|背心裙|dress';
     var skirtMode = cur.garment === 'skirt';
     var trouserMode = cur.garment === 'trousers';
-    if (Z(TROUSER_WORDS).test(src)) {
+    var dressMode = cur.garment === 'dress';
+    if (Z(DRESS_WORDS).test(src)) {
+      dressMode = true; skirtMode = false; trouserMode = false;
+      if (cur.garment !== 'dress') {
+        put('garment', 'dress'); var fe0 = FIT_EASE[c.fit] || FIT_EASE.fitted; Object.keys(fe0).forEach(function (k) { put(k, fe0[k]); });
+        done.push('改做連身裙');
+      }
+      each('無腰線|冇腰線|一件過|直身裙|shift', function () { put('dressType', 'shift'); done.push('無腰線'); });
+      each('有腰線|腰線|駁腰', function () { if (set.dressType !== 'shift') { put('dressType', 'waist'); done.push('有腰線'); } });
+    } else if (Z(TROUSER_WORDS).test(src)) {
+      dressMode = false;
       trouserMode = true; skirtMode = false;
       if (cur.garment !== 'trousers') { put('garment', 'trousers'); put('easeWaist', 1); put('easeHip', 5); done.push('改做褲'); }
     } else if (Z(SKIRT_WORDS).test(src)) {
@@ -97,6 +108,7 @@
       parseTrousers();
       return finish();
     }
+    if (dressMode) parseSkirt();   // 連身裙：裙部份（之後再讀上身）
     if (skirtMode) {
       parseSkirt();
       return finish();
@@ -180,6 +192,7 @@
       each('袖頭(?!\\s*(?:闊|寬|高))|袖口收褶|恤衫袖口|cuff', function () { put('cuff', 'band'); done.push('袖頭'); });
     }
 
+    if (!dressMode) {
     /* ---- 衫長 ---- */
     each('腰(?:線)?(?:以)?下\\s*' + NUM, function (m) {
       put('hemLen', round(num(m[1]))); put('lengthPreset', 'custom'); done.push('腰下 ' + c.hemLen + ' cm');
@@ -216,6 +229,7 @@
     }
     each('直腳|直身|直擺|直下擺', function () { put('hemShape', 'straight'); done.push('直腳下擺'); });
 
+    }
     /* ---- 鬆緊度 ---- */
     each('修身|貼身|收身|fitted', function () { setFit('fitted'); done.push('修身'); });
     each('合身|regular', function () { setFit('regular'); done.push('合身'); });
@@ -263,7 +277,7 @@
       if (!c.yoke || c.yoke === 'none') put('yoke', 'back');
       put('yokeFull', 6); put('yokeFullType', 'pleat'); done.push('育克下中間褶');
     });
-    each('(?<!袖口|袖口收|袖山)(?:碎褶|皺褶|抽褶|gather)', function () {
+    if (!dressMode) each('(?<!袖口|袖口收|袖山)(?:碎褶|皺褶|抽褶|gather)', function () {
       if (c.sleeveGather && /袖口/.test(src) && !/育克/.test(src)) return;
       if (!c.yoke || c.yoke === 'none') put('yoke', 'back');
       put('yokeFull', 10); put('yokeFullType', 'gather'); done.push('育克下碎褶');

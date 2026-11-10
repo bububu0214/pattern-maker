@@ -35,6 +35,8 @@
   function draftSkirt(m, ease, st) {
     var warnings = [];
     var Wt = m.waist + ease.waist, Ht = m.hip + ease.hip, D = m.waistToHip;
+    var ov = st.waistOverride || null;          // 連身裙：裙腰跟上身腰圍
+    if (ov) Wt = 2 * (ov.back + ov.front);
     var len = clamp(st.skirtLen || 60, 25, 120);
     if (len < D + 3) warnings.push('裙長短過腰至臀，臀位會唔夠位，建議最少 ' + f1(D + 3) + ' cm。');
     var shape = st.skirtShape || 'straight';
@@ -45,19 +47,19 @@
     var hemSa = st.hemSa;
 
     function piece(isFront) {
-      var waistW = isFront ? Wt / 4 + 0.5 : Wt / 4 - 0.5;
+      var waistW = ov ? (isFront ? ov.front : ov.back) : (isFront ? Wt / 4 + 0.5 : Wt / 4 - 0.5);
       var hipW = isFront ? Ht / 4 + 0.5 : Ht / 4 - 0.5;
       var excess = hipW - waistW;
       if (excess < 0) warnings.push('腰圍大過臀圍，裙會冇收腰。');
       // 側縫收一部份，其餘做褶（每個褶最多 3.5 cm）
       var side = clamp(excess * 0.4, 0, 3.5);
       var dartTotal = Math.max(0, excess - side);
-      var n = dartTotal < 0.3 ? 0 : (dartTotal > (isFront ? 3 : 2.5) ? 2 : 1);
+      var n = dartTotal < 0.3 ? 0 : (dartTotal > (st.dartXs ? 3.5 : (isFront ? 3 : 2.5)) ? 2 : 1);
       if (n && dartTotal / n > 3.5) { side += dartTotal - 3.5 * n; dartTotal = 3.5 * n; }
       var dw = n ? dartTotal / n : 0;
 
       var sx = waistW + dartTotal;                 // 側腰點（褶未收）
-      var cy = isFront ? 0 : 0.6;                  // 後中腰線落 0.6
+      var cy = isFront ? (st.frontDrop || 0) : (ov ? 0 : 0.6);   // 後中腰線落 0.6；連身裙前中跟上身落低
       var Sw = P(sx, -0.7);                        // 側腰升 0.7
       var C = P(0, cy);
       var waistCurve = [C, P(sx * 0.5, cy), P(sx * 0.82, -0.7 + 0.12), Sw];
@@ -89,6 +91,11 @@
 
       // 腰褶位置（由中線計，佔中線至側腰嘅比例）
       var fr = n === 2 ? (isFront ? [0.38, 0.68] : [0.33, 0.62]) : (isFront ? [0.5] : [0.45]);
+      var dx0 = st.dartXs && st.dartXs[isFront ? 'front' : 'back'];
+      if (dx0 && n) {                              // 連身裙：褶位對齊上身
+        var a0 = clamp(dx0 / sx, 0.2, 0.8);
+        fr = n === 2 ? [a0, Math.min(0.85, a0 + 4.5 / sx)] : [a0];
+      }
       var dLen = isFront ? [10, 9] : [14, 13];
       var darts = [], feet = [], notches = [];
       var xs = [];
@@ -271,7 +278,7 @@
     };
     band.dims = [{ kind: 'below', a: P(0, 2 * bw), b: P(Lb, 2 * bw), zh: '腰頭長 ' + f1(Lb) + '（連搭位 3）', en: 'Band ' + f1(Lb) }];
 
-    var pieces = [back, front, band];
+    var pieces = st.noBand ? [back, front] : [back, front, band];
     return {
       pieces: pieces, back: back, front: front, warnings: warnings, style: st, garment: 'skirt',
       info: {
