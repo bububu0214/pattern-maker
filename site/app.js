@@ -91,7 +91,7 @@
     closeAll();
     setTimeout(() => openModal(`
       <div class="message">
-        <div class="seal">織里</div>
+        <div class="seal">Hap.B</div>
         <h2>多謝你</h2>
         <p class="lede">呢度係示意原型。正式版會喺呢一步轉去 Shopify 結帳頁，用信用卡、Apple Pay、FPS 等方式付款。</p>
         ${hasCustom ? `<p class="policy">訂製款需全額付款，我哋收到款後會用 WhatsApp 或者電郵同你確認尺寸先開工。</p>` : ""}

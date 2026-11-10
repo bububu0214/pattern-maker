@@ -48,7 +48,7 @@ button { font: inherit; color: inherit; }
   height: 64px;
 }
 .brand { text-decoration: none; display: flex; align-items: baseline; gap: 10px; }
-.brand b { font-size: 22px; font-weight: 600; letter-spacing: .25em; }
+.brand b { font-size: 21px; font-weight: 600; letter-spacing: .06em; white-space: nowrap; }
 .brand span { font-family: var(--hand); font-size: 18px; color: var(--rust); }
 .nav { display: flex; gap: 22px; align-items: center; }
 .nav a { text-decoration: none; font-size: 15px; color: var(--ink-soft); padding: 4px 0; border-bottom: 1px solid transparent; }
@@ -59,10 +59,13 @@ button { font: inherit; color: inherit; }
 }
 .cart-btn .count { color: var(--rust); font-weight: 600; }
 
+.nav a, .cart-btn { white-space: nowrap; }
 @media (max-width: 640px) {
   .nav a.hide-sm { display: none; }
-  .nav { gap: 14px; }
+  .nav { gap: 12px; }
   .brand span { display: none; }
+  .brand b { font-size: 18px; letter-spacing: .03em; }
+  .cart-btn { padding: 3px 10px; font-size: 13px; }
 }
 
 /* ---------- views ---------- */
@@ -355,7 +358,7 @@ details summary { cursor: pointer; font-size: 14px; color: var(--ink-soft); }
 .message { padding: 40px 30px; text-align: center; display: grid; gap: 14px; justify-items: center; }
 .message .seal {
   width: 74px; height: 74px; border-radius: 50%; border: 2px solid var(--rust); color: var(--rust);
-  display: grid; place-items: center; font-size: 22px; transform: rotate(-8deg); letter-spacing: 0;
+  display: grid; place-items: center; font-size: 17px; font-weight: 600; transform: rotate(-8deg); letter-spacing: 0;
 }
 @media (max-width: 700px) {
   .pd { grid-template-columns: 1fr; }
