@@ -42,10 +42,45 @@
     NUM.forEach(function (k) { v[k] = parseFloat(form.elements[k].value); });
     SEL.forEach(function (k) { v[k] = form.elements[k].value; });
     CHK.forEach(function (k) { v[k] = form.elements[k].checked; });
+    estimate(v);
     return v;
   }
+
+  /* ---------- 冇填嘅身體尺寸：按胸圍／腰臀圍估計 ---------- */
+  var MEAS_ZH = { bust: '胸圍', waist: '腰圍', hip: '臀圍', shoulder: '肩寬', backLen: '背長', frontLen: '前長',
+    neck: '領圍', armhole: '夾圈', waistToHip: '腰至臀', armLen: '臂長', upperArm: '上臂圍', wrist: '腕圍',
+    crotchDepth: '股上', outseam: '褲長尺寸' };
+  function half(x) { return Math.round(x * 2) / 2; }
+  function estimate(v) {
+    var est = [];
+    function fill(k, val) {
+      if (isNaN(v[k]) && !isNaN(val)) { v[k] = half(val); est.push(k); }
+    }
+    var B = v.bust, W = v.waist, H = v.hip;
+    fill('bust', !isNaN(H) ? H - 6 : W + 18);
+    fill('waist', v.bust - 18);
+    fill('hip', v.bust + 6);
+    B = v.bust;
+    fill('shoulder', 0.22 * B + 19.5);
+    fill('backLen', 38);
+    fill('frontLen', v.backLen + 4);
+    fill('neck', 0.21 * B + 18.4);
+    fill('armhole', B / 2 - 2);
+    fill('waistToHip', 18);
+    fill('armLen', 56);
+    fill('upperArm', 0.32 * B);
+    fill('wrist', 0.19 * B);
+    fill('crotchDepth', v.hip / 4 + 3.5);
+    fill('outseam', 96);
+    v._est = est;
+  }
+  // 每種衣物最少要填嘅尺寸
+  function coreMeas(g) { return g === 'skirt' || g === 'trousers' ? ['waist', 'hip'] : ['bust']; }
   function writeForm(v) {
-    NUM.forEach(function (k) { if (v[k] != null && !isNaN(v[k])) form.elements[k].value = v[k]; });
+    NUM.forEach(function (k) {
+      if (v[k] === null && MEAS_ZH[k]) form.elements[k].value = '';
+      else if (v[k] != null && !isNaN(v[k])) form.elements[k].value = v[k];
+    });
     SEL.forEach(function (k) { if (v[k]) form.elements[k].value = v[k]; });
     CHK.forEach(function (k) { if (typeof v[k] === 'boolean') form.elements[k].checked = v[k]; });
     syncControls();
@@ -149,6 +184,11 @@
   /* ---------- 生成 ---------- */
   function generate() {
     var v = readForm();
+    var missing = coreMeas(v.garment).filter(function (k) { return form.elements[k].value.trim() === ''; });
+    if (missing.length) {
+      showWarnings(['最少要填' + missing.map(function (k) { return MEAS_ZH[k]; }).join('同') + '，其他尺寸唔知可以留空。']);
+      return;
+    }
     var bad = NUM.filter(function (k) {
       var el = form.elements[k], lab = el.closest('label');
       if (el.disabled || (lab && lab.hidden)) return false;
@@ -158,7 +198,14 @@
       showWarnings(['請檢查紅框嘅數值（空白或者超出範圍）。']);
       return;
     }
-    try { localStorage.setItem(STORE, JSON.stringify(v)); } catch (e) { /* 私隱模式 */ }
+    var saveV = {};
+    Object.keys(v).forEach(function (k) { if (k !== '_est') saveV[k] = v[k]; });
+    v._est.forEach(function (k) { saveV[k] = null; });
+    try { localStorage.setItem(STORE, JSON.stringify(saveV)); } catch (e) { /* 私隱模式 */ }
+    // 留空嘅格顯示估計值
+    Object.keys(MEAS_ZH).forEach(function (k) {
+      form.elements[k].placeholder = v._est.indexOf(k) >= 0 ? '估 ' + v[k] : '';
+    });
 
     var m = {
       bust: v.bust, waist: v.waist, hip: v.hip, shoulder: v.shoulder, backLen: v.backLen, frontLen: v.frontLen,
@@ -190,7 +237,13 @@
 
     preview.innerHTML = PM.toSVG(model, { screen: true }).replace(/^<\?xml[^>]*>\s*/, '');
     applyZoom();
-    showWarnings(res.warnings);
+    var shown = v._est.filter(function (k) {
+      var lab = form.elements[k].closest('label');
+      return !(lab && lab.hidden);
+    });
+    var notes = shown.length ? ['以下尺寸冇填，用咗估計值（試身後再改）：' +
+      shown.map(function (k) { return MEAS_ZH[k] + ' ' + v[k]; }).join('、')] : [];
+    showWarnings(notes.concat(res.warnings));
     showInfo(res.info, v);
     ['dlPdf', 'dlSvg', 'dlDxf', 'dlSeamly'].forEach(function (id) { document.getElementById(id).disabled = false; });
   }
