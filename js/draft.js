@@ -157,7 +157,8 @@
   var FIT = {
     fitted: { capH: function (ah) { return ah / 4 + 2.5; }, capEase: 2, sleeveEase: 6 },
     regular: { capH: function (ah) { return ah / 4 + 1; }, capEase: 1.5, sleeveEase: 8 },
-    loose: { capH: function (ah) { return ah / 6 + 1.5; }, capEase: 0.5, sleeveEase: 12 }
+    loose: { capH: function (ah) { return ah / 6 + 1.5; }, capEase: 0.5, sleeveEase: 12 },
+    jacket: { capH: function (ah) { return ah / 4 + 3; }, capEase: 3, sleeveEase: 12 }
   };
 
   /* ---------- 衣身 ---------- */
@@ -519,6 +520,155 @@
     return pc;
   }
 
+  /* ---------- 企領、恤衫領、翻領、西裝領 ---------- */
+  // 將曲線喺指定長度位切開（等剪口有點放）
+  function splitListAt(list, lengths) {
+    var out = [], acc = 0, k = 0;
+    lengths = lengths.slice().sort(function (a, b) { return a - b; });
+    list.forEach(function (b) {
+      var cur = b, start = acc, Lb = cubicLen(b);
+      while (k < lengths.length && lengths[k] > start + 0.05 && lengths[k] < start + Lb - 0.05) {
+        var parts = splitAtLen(cur, lengths[k] - start);
+        out.push(parts[0]); start += cubicLen(parts[0]); cur = parts[1]; Lb = cubicLen(cur) + start - acc; k++;
+      }
+      out.push(cur); acc += cubicLen(b);
+    });
+    return out;
+  }
+  function bandPiece(o) {
+    // o: key, zh, en, len, h, rise, roundEnd, notchAt[], cutZh, cutEn
+    var L = o.len, h = o.h, rise = o.rise;
+    var neck = [P(0, 0), P(L * 0.5, 0), P(L * 0.85, -rise * 0.4), P(L, -rise)];
+    var t1 = G.norm(G.sub(neck[3], neck[2])), n1 = P(t1.y, -t1.x), n0 = P(0, -1);
+    var topB = [G.add(neck[0], G.mul(n0, h)), G.add(neck[1], G.mul(n0, h)), G.add(neck[2], G.mul(n1, h)), G.add(neck[3], G.mul(n1, h))];
+    var front = o.roundEnd
+      ? [[topB[3], G.add(topB[3], G.mul(t1, h * 0.55)), G.add(neck[3], G.mul(t1, h * 0.55)), neck[3]]]
+      : [lineBez(topB[3], neck[3])];
+    var neckParts = splitListAt([neck], o.notchAt || []);
+    var notchPts = [];
+    var acc = 0;
+    neckParts.slice(0, -1).forEach(function (b) { acc += cubicLen(b); notchPts.push(b[3]); });
+    var pc = {
+      key: o.key, zh: o.zh, en: o.en, mirror: false, fold: 'center', darts: [], marks: o.marks || [],
+      edges: [bezEdge('top', [topB]), bezEdge('front', front), bezEdge('neck', reverseBez(neckParts)), { name: 'center', pts: [P(0, 0), P(0, -h)] }],
+      guides: [], notches: notchPts.map(function (p) { return { edge: 'neck', p: p, count: 1 }; }),
+      grain: [P(1.5, -h * 0.85), P(1.5, -h * 0.15)].map(function (p) { return p; }),
+      label: { p: P(L * 0.45, -h * 0.5) }, foldZh: '後中對摺', foldEn: 'CB FOLD',
+      cut: 1, qty: 2, cutZh: o.cutZh || '裁 2 片對摺（面＋裡）＋燙朴', cutEn: o.cutEn || 'CUT 2 ON FOLD', small: true
+    };
+    pc.grain = [P(L * 0.12, -h * 0.5 + 0), P(L * 0.12 + Math.min(10, L * 0.3), -h * 0.5)];
+    pc.dims = [{ kind: 'edge', edge: 'neck', zh: '領底', en: 'Neck', frac: 0.5 }];
+    return pc;
+  }
+  function fallCollar(o) {
+    // o: key, zh, en, len, w, bottomDrop（正數 = 前端落低，負數 = 升高）, pointOut, pointUp, notchAt[]
+    var L = o.len, w = o.w, d = o.bottomDrop;
+    var bottom = [P(0, 0), P(L * 0.5, 0), P(L * 0.85, d * 0.35), P(L, d)];
+    var Pt = P(L + o.pointOut, -w - o.pointUp);
+    var outer = [P(0, -w), P(L * 0.5, -w), P(L * 0.85, -w - o.pointUp * 0.3), Pt];
+    var bParts = splitListAt([bottom], o.notchAt || []);
+    var notchPts = bParts.slice(0, -1).map(function (b) { return b[3]; });
+    var pc = {
+      key: o.key, zh: o.zh, en: o.en, mirror: false, fold: 'center', darts: [], marks: [],
+      edges: [bezEdge('outer', [outer]), { name: 'front', pts: [Pt, bottom[3]] }, bezEdge('neck', reverseBez(bParts)), { name: 'center', pts: [P(0, 0), P(0, -w)] }],
+      guides: o.rollAt ? [{ pts: [P(0, -o.rollAt), P(L * 0.7, -o.rollAt - d * 0.1)], dash: [0.6, 0.3], zh: '翻摺線', en: 'ROLL LINE' }] : [],
+      notches: notchPts.map(function (p) { return { edge: 'neck', p: p, count: 1 }; }),
+      grain: [P(1.5, -w * 0.85), P(1.5, -w * 0.2)],
+      label: { p: P(L * 0.5, -w * 0.55) }, foldZh: '後中對摺', foldEn: 'CB FOLD',
+      cut: 1, qty: 2, cutZh: '裁 2 片對摺（面領＋底領）＋燙朴', cutEn: 'CUT 2 ON FOLD', small: true
+    };
+    pc.dims = [{ kind: 'edge', edge: 'neck', zh: '領底', en: 'Neck', frac: 0.5 }, { kind: 'edge', edge: 'outer', zh: '領邊', en: 'Edge', frac: 0.5 }];
+    return pc;
+  }
+  function otherCollars(st, back, front, warnings) {
+    var type = st.collar;
+    if (type === 'none' || type === 'peterpan' || type === 'notched') return [];
+    var nb = G.polyLen(back.edges[0].pts), nf = G.polyLen(front.edges[0].pts);
+    var n = nb + nf, ext = front._.ext || 0;
+    if (type === 'mandarin') {
+      return [bandPiece({ key: 'collar', zh: '企領', en: 'MANDARIN COLLAR', len: n + ext, h: clamp(st.collarW || 3.5, 2, 6), rise: 1.5,
+        roundEnd: true, notchAt: [nb, n] })];
+    }
+    if (type === 'shirt') {
+      var stand = bandPiece({ key: 'collarStand', zh: '領座', en: 'COLLAR STAND', len: n + ext, h: 3, rise: 1.5, roundEnd: true,
+        notchAt: [nb, n], marks: ext ? [{ type: 'buttonhole', p: P(n + ext * 0.4, -1.5) }] : [] });
+      var fall = fallCollar({ key: 'collar', zh: '恤衫領', en: 'SHIRT COLLAR', len: n - 0.3, w: clamp(st.collarW || 4.5, 3, 9),
+        bottomDrop: 0.9, pointOut: 1.5, pointUp: 0.8, notchAt: [nb] });
+      return [fall, stand];
+    }
+    if (type === 'convertible') {
+      return [fallCollar({ key: 'collar', zh: '翻領', en: 'CONVERTIBLE COLLAR', len: n, w: clamp(st.collarW || 7, 4, 12),
+        bottomDrop: -1.2, pointOut: 2, pointUp: 0.6, notchAt: [nb], rollAt: 2.8 })];
+    }
+    return [];
+  }
+
+  /* ---------- 西裝領：駁頭（平駁頭） ---------- */
+  function lapel(st, front, warnings) {
+    var d = front._, ext = d.ext, S = d.S, f = d.dir;
+    var yBreak = clamp(front.yB + 1, d.C.y + 8, d.yHc - 12);
+    var Bp = P(-ext, yBreak);
+    var Rp = G.sub(S, G.mul(f, 2));                      // 翻摺線頂：側頸點再入 2 cm
+    var r = G.norm(G.sub(Rp, Bp)), Lr = G.dist(Bp, Rp);
+    var q = P(-r.y, r.x); if (q.x > 0) q = G.mul(q, -1);  // 指向前中外面
+    var at = function (u, v) { return G.add(Bp, G.add(G.mul(r, u * Lr), G.mul(q, v))); };
+    var lw = clamp(st.lapelW || 9, 5, 12);
+    var Lp = at(0.82, lw), Nc = at(0.75, lw * 0.5);
+    // 領口：由側頸點量起 40% 做駁頭接位
+    var neckE = front.edges[0];
+    var nb = neckE.bez ? neckE.bez[0] : null;
+    if (!nb) { warnings.push('西裝領要用圓領口。'); return null; }
+    var Lneck = cubicLen(nb);
+    var parts = splitAtLen(nb, Lneck * 0.6);              // C → Ng，Ng → S
+    var Ng = parts[1][0];
+    var lapelEdge = [
+      [Bp, G.add(Bp, G.add(G.mul(r, Lr * 0.3), G.mul(q, lw * 0.35))), G.sub(Lp, G.mul(r, Lr * 0.18)), Lp],
+      lineBez(Lp, Nc), lineBez(Nc, Ng)
+    ];
+    var edges = front.edges;
+    var ci = edges.map(function (e) { return e.name; }).indexOf('center');
+    var hemPt = edges[ci].pts[0];
+    var newEdges = [bezEdge('neck', [parts[1]])].concat(edges.slice(1, ci))
+      .concat([{ name: 'center', pts: [hemPt, Bp] }, bezEdge('lapel', lapelEdge)]);
+    front.edges = newEdges;
+    // 記號：鈕由翻摺點開始
+    var btns = [], nB = Math.max(1, Math.round((d.yHc - 8 - yBreak) / 10) + 1);
+    for (var i = 0; i < nB; i++) btns.push({ type: 'button', p: P(0, yBreak + (nB > 1 ? (d.yHc - 8 - yBreak) * i / (nB - 1) : 0)) });
+    front.marks = front.marks.filter(function (mk) { return mk.type !== 'button'; }).concat(btns);
+    front.guides = front.guides.filter(function (gd) { return gd.zh !== '前中線'; });
+    front.guides.push({ pts: [P(0, yBreak), P(0, d.yHc)], dash: [1, 0.3, 0.2, 0.3], zh: '前中線', en: 'CF' });
+    front.guides.push({ pts: [Bp, at(0.86, 0)], dash: [0.6, 0.3], zh: '翻摺線', en: 'ROLL LINE' });
+    front.notches.push({ edge: 'neck', p: Ng, count: 1 }, { edge: 'lapel', p: Nc, count: 1 });
+    front.dims = front.dims.filter(function (x) { return x.kind !== 'dim'; }).concat([
+      { kind: 'edge', edge: 'lapel', zh: '駁頭', en: 'Lapel', frac: 0.3 }
+    ]);
+    front.zh = '前片（連駁頭）';
+    return { Bp: Bp, Ng: Ng, Nc: Nc, Lp: Lp, neckToGorge: cubicLen(parts[1]), roll: [Bp, Rp] };
+  }
+  function notchedCollar(st, back, li) {
+    var nb = G.polyLen(back.edges[0].pts);
+    var L = nb + li.neckToGorge;
+    var pc = fallCollar({ key: 'collar', zh: '西裝領', en: 'NOTCHED COLLAR', len: L, w: clamp(st.collarW || 7.5, 5, 12),
+      bottomDrop: -1.0, pointOut: 3, pointUp: -(clamp(st.collarW || 7.5, 5, 12) - 4.5), notchAt: [nb], rollAt: 3 });
+    pc.cutZh = '面領 1 片＋底領 1 片（底領斜紋），對摺';
+    return pc;
+  }
+  function jacketFacing(front, li) {
+    var d = front._;
+    var A = G.add(d.S, G.mul(d.dir, Math.min(3.5, G.dist(d.S, d.tip) - 2)));
+    var Bh = P(Math.min(9, d.dX - d.dW / 2 - 1), d.yHc + 5);
+    var pc = PM.modify.splitByLine(front, P(Bh.x, Bh.y), A, li.Bp, 'facingLine', {
+      key: 'facing', zh: '前貼邊（連駁頭）', en: 'FRONT FACING', cut: 2, cutZh: '裁 2 片＋燙朴 2 片', cutEn: 'CUT 2 + 2 INTERFACING', small: true
+    });
+    if (!pc) return null;
+    pc.marks = []; pc.darts = [];
+    pc.guides = (pc.guides || []).filter(function (gd) { return gd.zh === '翻摺線'; });
+    pc.dims = [{ kind: 'edge', edge: 'lapel', zh: '駁頭', en: 'Lapel', frac: 0.3 }];
+    pc.saEdge = { hem: st0.hemSa };
+    return pc;
+  }
+  var st0 = {};
+
   /* ---------- 彼得潘圓領 ---------- */
   // 傳統做法：前後片喺側頸點對齊，肩點重疊 2 cm，沿領口描出領底線，再向外畫領闊
   function collar(st, back, front, warnings) {
@@ -803,11 +953,18 @@
 
   function draft(m, ease, style) {
     var st = Object.assign({}, DEFAULT_STYLE, style || {});
+    st0 = st;
     if (st.garment === 'skirt' && PM.draftSkirt) return PM.draftSkirt(m, ease, st);
     if (st.garment === 'trousers' && PM.draftTrousers) return PM.draftTrousers(m, ease, st);
     if (st.garment === 'dress') return draftDress(m, ease, st);
     var warnings = [];
+    if (['mandarin', 'shirt', 'convertible'].indexOf(st.collar) >= 0 && (st.neckline !== 'round' || st.neckDropF > 2 || st.neckWiden > 1.5)) {
+      st.neckline = 'round'; st.neckWiden = 0; st.neckDropF = 0; st.neckDropB = 0;
+      warnings.push('企領／恤衫領／翻領要配貼頸圓領口，已將領口改返基本圓領。');
+    }
+    if (st.collar === 'notched' && !st.opening) { st.opening = true; st.ext = Math.max(st.ext || 2, 2.5); }
     var bod = bodice(m, ease, st, warnings);
+    var lapelInfo = st.collar === 'notched' ? lapel(st, bod.front, warnings) : null;
     var pieces = [bod.back, bod.front];
     var sl = null;
     if (st.sleeve && st.sleeve !== 'none') { sl = sleeve(m, st, bod, warnings); pieces.push(sl); }
@@ -815,7 +972,12 @@
     if (sl) Object.assign(info, { sleeve: sl.info });
     var extras = [];
     if (st.collar === 'peterpan') { var col = collar(st, bod.back, bod.front, warnings); if (col) extras.push(col); }
-    if (st.opening && st.facing) extras.push(facing(st, bod.front));
+    extras = extras.concat(otherCollars(st, bod.back, bod.front, warnings));
+    if (lapelInfo) {
+      extras.push(notchedCollar(st, bod.back, lapelInfo));
+      var jf = jacketFacing(bod.front, lapelInfo);
+      if (jf) extras.push(jf); else warnings.push('前貼邊畫唔到，請自己按駁頭畫。');
+    } else if (st.opening && st.facing) extras.push(facing(st, bod.front));
     if (sl && sl.info.cuff) extras.push(cuffPiece(sl.info.cuff));
     if (st.pocket && st.pocket !== 'none') extras.push(pocketPiece(st, m, bod.front));
     var body = applyTopMods(st, bod.back, bod.front, warnings);

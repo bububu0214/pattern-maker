@@ -25,8 +25,10 @@
   var FIT_EASE = {
     fitted: { easeBust: 6, easeWaist: 4, easeHip: 4 },
     regular: { easeBust: 10, easeWaist: 12, easeHip: 8 },
-    loose: { easeBust: 16, easeWaist: 16, easeHip: 12 }
+    loose: { easeBust: 16, easeWaist: 16, easeHip: 12 },
+    jacket: { easeBust: 12, easeWaist: 12, easeHip: 10, easeArmhole: 4, easeNeck: 1 }
   };
+  var COLLAR_W = { peterpan: 7, mandarin: 3.5, shirt: 4.5, convertible: 7, notched: 7.5 };
   function lengthFor(preset, v) {
     return { cropped: -6, waist: 0, hip: v.waistToHip + 2, tunic: v.waistToHip + 18, dress: 58 }[preset];
   }
@@ -71,7 +73,7 @@
     form.elements.slitLen.disabled = v.slit === 'none';
     // 上衣／半截裙：只顯示用得着嘅欄位
     Array.prototype.forEach.call(form.querySelectorAll('.only-top, .only-skirt, .only-trousers, .only-dress'), function (el) {
-      el.hidden = !el.classList.contains('only-' + v.garment);
+      el.hidden = !el.classList.contains('only-' + (v.garment === 'jacket' ? 'top' : v.garment));
     });
     updateTotal();
   }
@@ -92,6 +94,13 @@
   form.elements.garment.addEventListener('change', function () {
     if (form.elements.garment.value === 'skirt') { setVal('easeWaist', 1); setVal('easeHip', 4); }
     else if (form.elements.garment.value === 'trousers') { setVal('easeWaist', 1); setVal('easeHip', 5); }
+    else if (form.elements.garment.value === 'jacket') {
+      var v0 = readForm();
+      setVal('fit', 'jacket'); Object.keys(FIT_EASE.jacket).forEach(function (k) { setVal(k, FIT_EASE.jacket[k]); });
+      setVal('collar', 'notched'); setVal('collarW', 7.5); form.elements.opening.checked = true; setVal('ext', 2.5);
+      setVal('sleeve', 'long'); setVal('sleeveLen', v0.armLen + 2); setVal('hemLen', v0.waistToHip + 4); setVal('lengthPreset', 'custom');
+      setVal('neckline', 'round'); setVal('neckWiden', 0); setVal('neckDropF', 0);
+    }
     else { var e = FIT_EASE[form.elements.fit.value]; Object.keys(e).forEach(function (k) { setVal(k, e[k]); }); }
     syncControls();
   });
@@ -101,6 +110,12 @@
   });
   form.elements.skirtLen.addEventListener('input', function () { setVal('skirtLenPreset', 'custom'); });
   ['collar', 'cuff'].forEach(function (k) { form.elements[k].addEventListener('change', syncControls); });
+  form.elements.collar.addEventListener('change', function () {
+    var c = form.elements.collar.value;
+    if (COLLAR_W[c]) setVal('collarW', COLLAR_W[c]);
+    if (c === 'notched' || c === 'shirt') { form.elements.opening.checked = true; if (c === 'notched') setVal('ext', Math.max(2.5, parseFloat(form.elements.ext.value) || 2)); }
+    syncControls();
+  });
   form.elements.fit.addEventListener('change', function () {
     var e = FIT_EASE[form.elements.fit.value];
     Object.keys(e).forEach(function (k) { setVal(k, e[k]); });
@@ -315,13 +330,14 @@
     var v = current.v;
     if (v.garment === 'trousers') return 'trousers_W' + v.waist + '_H' + v.hip;
     if (v.garment === 'dress') return 'dress_B' + v.bust + '_W' + v.waist;
+    if (v.garment === 'jacket') return 'jacket_B' + v.bust + '_W' + v.waist;
     return v.garment === 'skirt' ? 'skirt_W' + v.waist + '_H' + v.hip : 'top_B' + v.bust + '_W' + v.waist;
   }
 
   var NAMES = {
     neckline: { round: 'round neck', v: 'V-neck', square: 'square neck', boat: 'boat neck' },
     sleeve: { none: 'sleeveless', short: 'short sleeve', elbow: '3/4 sleeve', long: 'long sleeve' },
-    fit: { fitted: 'fitted', regular: 'regular fit', loose: 'loose' }
+    fit: { fitted: 'fitted', regular: 'regular fit', loose: 'loose', jacket: 'jacket ease' }
   };
   var SK_NAMES = { straight: 'straight skirt', pencil: 'pencil skirt', aline: 'A-line skirt', gathered: 'gathered skirt',
     pleated: 'pleated skirt', halfcircle: 'half-circle skirt', circle: 'circle skirt' };
@@ -340,7 +356,7 @@
     }
     return NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] + ', ' + NAMES.fit[v.fit] +
       ', length ' + (v.hemLen >= 0 ? '+' : '') + v.hemLen + ' from waist' + (v.hemShape === 'aline' ? ', A-line' : '') +
-      (v.opening ? ', front opening' : '') + (v.collar === 'peterpan' ? ', Peter Pan collar' : '') +
+      (v.opening ? ', front opening' : '') + ({ peterpan: ', Peter Pan collar', mandarin: ', mandarin collar', shirt: ', shirt collar with stand', convertible: ', convertible collar', notched: ', notched lapel collar' }[v.collar] || '') +
       (v.pocket !== 'none' ? ', patch pocket' : '') + (v.cuff === 'band' && !form.elements.cuff.disabled ? ', cuffs' : '') +
       (v.yoke !== 'none' ? ', ' + v.yoke + ' yoke' + (v.yokeFull > 0 ? ' with ' + (v.yokeFullType === 'pleat' ? 'pleat' : 'gathers') : '') : '') +
       (v.princess ? ', princess seams' : '') + (v.sleevePuff > 0 && v.sleeve !== 'none' ? ', puff sleeves' : '') +
@@ -410,7 +426,7 @@
     if (v.opening && !v.facing) lines.push('Front facing not included.');
     lines.push('Pieces: ' + current.res.pieces.map(function (p) { return p.en.toLowerCase(); }).join(', '));
     if (v.garment === 'dress') lines.unshift('Dress: ' + (v.dressType === 'shift' ? 'no waist seam' : 'waist seam, ' + SK_NAMES[v.skirtShape]) + ', skirt length ' + v.skirtLen + ' cm');
-    download(PM.toPDF(current.model, { lines: lines, title: (v.garment === 'dress' ? 'Women\'s Dress Pattern - ' : 'Women\'s Top Pattern - ') + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
+    download(PM.toPDF(current.model, { lines: lines, title: (v.garment === 'dress' ? 'Women\'s Dress Pattern - ' : v.garment === 'jacket' ? 'Women\'s Jacket Pattern - ' : 'Women\'s Top Pattern - ') + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
   };
 
   /* ---------- 上傳圖片（可多張）+ AI 分析 ---------- */
@@ -533,7 +549,7 @@
     '{"garment": "top", "dressType": "waist", "isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
     ' "frontNeckDepth": "high|medium|low|deep", "backNeckDepth": "high|medium|low",',
     ' "length": "cropped|waist|hip|tunic|dress", "hem": "straight|aline", "sleeve": "none|short|elbow|long",',
-    ' "fit": "fitted|regular|loose", "frontOpening": false, "collar": "none|peterpan|other",',
+    ' "fit": "fitted|regular|loose|jacket", "frontOpening": false, "collar": "none|peterpan|mandarin|shirt|convertible|notched|other",',
     ' "pocket": "none|left|right|both", "cuff": "none|band",',
     ' "yoke": "none|back|front|both", "yokeFullness": "none|gather|pleat", "princess": false, "puffSleeve": false, "sleeveHemGather": false,',
     ' "ruffle": "none|hem|sleeve|neck",',
@@ -555,10 +571,11 @@
     '- sleeve: short = above the elbow, elbow = elbow to 3/4, long = to the wrist. Cap sleeves count as short.',
     '- fit: fitted = shaped to the body with darts or seams, regular = some shaping, loose = boxy or flowing.',
     '- frontOpening = true if it opens at centre front with buttons, snaps or a zip (the generator adds a button stand, button marks and a front facing).',
-    '- collar: peterpan = a flat collar with rounded front ends; other = any other collar (shirt collar with stand, notched/lapel, mandarin, shawl, sailor, bow, etc.).',
+    '- collar: peterpan = flat collar with rounded front ends; mandarin = stand-up band collar; shirt = shirt collar with a separate stand; convertible = one-piece collar that lies open (camp/Cuban collar); notched = tailored jacket collar with lapels; other = any other collar (shawl, sailor, bow, ruffled, hood, etc.).',
+    '- fit: use "jacket" for jackets, blazers and coats (more ease, worn over clothes); use garment "top" for them.',
     '- pocket: patch pocket on the chest, as seen by the wearer (left = wearer\'s left, which appears on the RIGHT of a front-facing photo).',
     '- cuff: band = sleeve finished with a cuff band (usually with gathers or pleats and a button); none = plain hem.',
-    'The generator CAN make: for tops the necklines above, length, straight or A-line hem, sleeves, fit, front button opening with facing, Peter Pan collar, chest patch pockets, cuffs,',
+    'The generator CAN make: for tops the necklines above, length, straight or A-line hem, sleeves, fit, front button opening with facing, Peter Pan / mandarin / shirt / convertible / notched lapel collars, jackets, chest patch pockets, cuffs,',
     'yokes (with gathers or a box pleat below), princess seams, puff sleeves, gathered sleeve hems, ruffles at hem/sleeve/neck;',
     'for skirts straight/pencil/A-line/gathered/pleated/half-circle/circle, any length, a slit at the back, front or side, back or side zip, waistband, waist darts;',
     'for trousers straight/slim/wide legs, shorts to full length, front fly or side zip with waistband, or elastic waist, waist darts.',
@@ -608,7 +625,7 @@
     neckline: { round: '圓領', v: 'V 領', square: '方領', boat: '一字領' },
     length: { cropped: '短身', waist: '及腰', hip: '及臀', tunic: '長身', dress: '連身裙長' },
     sleeve: { none: '無袖', short: '短袖', elbow: '七分袖', long: '長袖' },
-    fit: { fitted: '修身', regular: '合身', loose: '寬鬆' },
+    fit: { fitted: '修身', regular: '合身', loose: '寬鬆', jacket: '外套' },
     hem: { straight: '直腳', aline: 'A 字' }
   };
   function pick(val, allowed, dflt) { return allowed.indexOf(val) >= 0 ? val : dflt; }
@@ -685,7 +702,8 @@
     if (neckline === 'square') fd = Math.max(fd, 4);
     var length = pick(r.length, ['cropped', 'waist', 'hip', 'tunic', 'dress'], 'waist');
     var sleeve = pick(r.sleeve, ['none', 'short', 'elbow', 'long'], 'none');
-    var fit = pick(r.fit, ['fitted', 'regular', 'loose'], 'fitted');
+    var fit = pick(r.fit, ['fitted', 'regular', 'loose', 'jacket'], 'fitted');
+    if (fit === 'jacket' && !isDress) setVal('garment', 'jacket');
     var hem = pick(r.hem, ['straight', 'aline'], 'straight');
 
     setVal('neckline', neckline);
@@ -697,9 +715,10 @@
     var e = FIT_EASE[fit]; Object.keys(e).forEach(function (k) { setVal(k, e[k]); });
     form.elements.opening.checked = !!r.frontOpening;
     if (r.frontOpening) form.elements.facing.checked = true;
-    var collar = r.collar === 'peterpan' ? 'peterpan' : 'none';
-    if (collar === 'peterpan' && (neckline === 'v' || neckline === 'square')) { neckline = 'round'; setVal('neckline', 'round'); fd = 0; setVal('neckDropF', 0); }
-    setVal('collar', collar);
+    var collar = pick(r.collar, ['none', 'peterpan', 'mandarin', 'shirt', 'convertible', 'notched'], 'none');
+    if (collar !== 'none' && (neckline === 'v' || neckline === 'square' || (collar !== 'peterpan' && neckline === 'boat'))) { neckline = 'round'; setVal('neckline', 'round'); fd = 0; setVal('neckDropF', 0); setVal('neckWiden', 0); }
+    setVal('collar', collar); if (COLLAR_W[collar]) setVal('collarW', COLLAR_W[collar]);
+    if (collar === 'notched') { form.elements.opening.checked = true; setVal('ext', 2.5); }
     setVal('pocket', pick(r.pocket, ['none', 'left', 'right', 'both'], 'none'));
     var cuff = r.cuff === 'band' && (sleeve === 'long' || sleeve === 'elbow') ? 'band' : 'none';
     setVal('cuff', cuff);
@@ -741,7 +760,7 @@
     aiResult.innerHTML = '<div class="ai"><p><b>' + (images.length && imagesOK ? 'AI 睇到：' : 'AI：') + '</b>' + esc(r.summary || '') + '</p>' +
       (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
       '<p>已設定：' + dressTxt + ZH.neckline[neckline] + '、' + (isDress ? '' : (num(cm.hemLen, -15, 90) != null ? '衫總長 ' + form.elements.totalLen.value + ' cm（腰下 ' + form.elements.hemLen.value + ' cm）' : ZH.length[length]) + '、' + ZH.hem[hem] + '、') + ZH.sleeve[sleeve] + '、' +
-      ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
+      ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + ({ peterpan: '、彼得潘圓領', mandarin: '、企領', shirt: '、恤衫領', convertible: '、翻領', notched: '、西裝領' }[collar] || '') +
       (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') +
       ({ back: '、後育克', front: '、前育克', both: '、前後育克' }[yoke] || '') + (yoke !== 'none' && yf !== 'none' ? (yf === 'pleat' ? '（中間褶）' : '（碎褶）') : '') +
       (form.elements.princess.checked ? '、公主線' : '') + (r.puffSleeve && sleeve !== 'none' ? '、泡泡袖' : '') +

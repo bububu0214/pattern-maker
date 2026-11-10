@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>紙樣生成器 — 女裝上衣、裙、褲、連身裙</title>
+  <title>紙樣生成器 — 女裝衫、裙、褲、連身裙、外套</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header>
     <h1>紙樣生成器</h1>
-    <p class="sub">女裝上衣、半截裙、褲、連身裙：上傳款式圖或者寫低要求 → 按你嘅尺寸出紙樣</p>
+    <p class="sub">女裝上衣、半截裙、褲、連身裙、外套：上傳款式圖或者寫低要求 → 按你嘅尺寸出紙樣</p>
   </header>
 
   <main>
@@ -38,6 +38,7 @@
             <option value="skirt">半截裙</option>
             <option value="trousers">褲</option>
             <option value="dress">連身裙</option>
+            <option value="jacket">外套（西裝）</option>
           </select></label>
         <label class="only-dress">連身裙款
           <select name="dressType">
@@ -150,6 +151,7 @@
             <option value="fitted">修身（有腰褶）</option>
             <option value="regular">合身</option>
             <option value="loose">寬鬆（無褶）</option>
+            <option value="jacket">外套（加大放鬆量）</option>
           </select></label>
         <label class="chk only-top only-dress"><input type="checkbox" name="opening"> 前中開胸（加門襟同鈕位）</label>
         <label class="only-top only-dress">門襟寬 <input type="number" name="ext" step="0.5" min="0.5" max="6" value="2"> <span>cm</span></label>
@@ -158,6 +160,10 @@
           <select name="collar">
             <option value="none">無</option>
             <option value="peterpan">彼得潘圓領</option>
+            <option value="mandarin">企領（中式立領）</option>
+            <option value="shirt">恤衫領（有領座）</option>
+            <option value="convertible">翻領（一片）</option>
+            <option value="notched">西裝領（平駁頭）</option>
           </select></label>
         <label class="only-top only-dress">領闊 <input type="number" name="collarW" step="0.5" min="3" max="15" value="7"> <span>cm</span></label>
         <label class="only-top only-dress">口袋

@@ -328,7 +328,42 @@
     return pc;
   }
 
+  /* ---------- 整塊紙樣做座標變換 ---------- */
+  function transformPiece(pc, f) {
+    var o = clone(pc);
+    o.edges.forEach(function (e) {
+      e.pts = e.pts.map(f);
+      if (e.bez) e.bez = e.bez.map(function (b) { return b.map(f); });
+    });
+    (o.darts || []).forEach(function (d) { d.pts = d.pts.map(f); d.apex = f(d.apex); if (d.low) d.low = f(d.low); });
+    (o.guides || []).forEach(function (gd) { gd.pts = gd.pts.map(f); });
+    (o.marks || []).forEach(function (mk) { mk.p = f(mk.p); });
+    (o.notches || []).forEach(function (n) { n.p = f(n.p); });
+    if (o.grain) o.grain = o.grain.map(f);
+    if (o.label) o.label = { p: f(o.label.p) };
+    (o.dims || []).forEach(function (d) { ['a', 'b', 'p'].forEach(function (k) { if (d[k]) d[k] = f(d[k]); }); });
+    return o;
+  }
+
+  /** 沿直線 A→B 剪開，返回包含 ref 點嗰邊 */
+  function splitByLine(pc, A, Bp, ref, seamName, info) {
+    var th = Math.atan2(Bp.y - A.y, Bp.x - A.x), c = Math.cos(-th), sn = Math.sin(-th);
+    var rot = function (p) { var dx = p.x - A.x, dy = p.y - A.y; return P(A.x + dx * c - dy * sn, A.y + dx * sn + dy * c); };
+    var c2 = Math.cos(th), s2 = Math.sin(th);
+    var unrot = function (p) { var dx = p.x - A.x, dy = p.y - A.y; return P(A.x + dx * c2 - dy * s2, A.y + dx * s2 + dy * c2); };
+    var r = splitAtY(transformPiece(pc, rot), A.y, seamName, info);
+    if (!r) return null;
+    var rr = rot(ref);
+    var pick = function (pp) { return inside(outline(pp.edges), rr); };
+    var chosen = pick(r.upper) ? r.upper : r.lower;
+    if (chosen === r.lower) Object.assign(chosen, info);
+    var out = transformPiece(chosen, unrot);
+    out.grain = null; out.label = null;
+    return tidy(out, {});
+  }
+
   PM.modify = {
+    transformPiece: transformPiece, splitByLine: splitByLine,
     splitAtY: splitAtY, addFullness: addFullness, princess: princess, ruffle: ruffle,
     tidy: tidy, toSegs: toSegs, toEdges: toEdges
   };
