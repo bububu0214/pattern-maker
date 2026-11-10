@@ -24,7 +24,18 @@ Repo 嘅 Settings → Pages → Source 揀「Deploy from a branch」→ Branch �
 5. 下載：
    - **PDF（1:1 A4）**：第 1 頁有尺寸表、10 cm 測試方格同拼頁圖；之後每頁一格紙樣，有頁碼（A1、A2…）、對位圓圈記號同框線
    - **SVG**：實際尺寸（cm），分圖層，可以放入 Inkscape / Illustrator
+   - **Seamly2D（.sm2d）**：Seamly2D 原生紙樣檔（亦開到 Valentina），詳見下面
    - **DXF**：R12 格式，單位 mm，分圖層（CUT 裁剪線、SEAM 縫線、DART 褶、GRAIN 布紋線、NOTCH 剪口、DIM 尺寸…），可以放入 CAD／紙樣軟件
+
+### 用 Seamly2D 開
+
+撳「下載 Seamly2D（.sm2d）」，然後喺 Seamly2D 用「File → Open」開個 `.sm2d` 檔。
+
+- 用 v0.6.0 檔案格式，新舊版 Seamly2D 同 Valentina 都開到；新版開檔時會自動升級格式（可能會問你另存）
+- **Draft 模式**：所有點、直線、腰褶、胸圍線，同埋可以拖動修改嘅曲線（領口、夾圈）
+- **Piece 模式**：「Back」「Front」兩塊紙樣，已設定縫份；對摺邊縫份為 0；夾圈同褶位有剪口；有布紋線同紙樣標籤
+- 所有點都由基準點 A 用「角度＋長度」定位，數值固定（未連結量身檔）
+- 注意：Seamly2D 唔可以將 DXF／SVG 讀做可以改嘅紙樣，所以要用 .sm2d
 
 ### 打印 PDF 注意
 
@@ -54,5 +65,6 @@ js/layout.js        標示、布紋線、縫份、排版
 js/export-svg.js    SVG 輸出（亦用嚟做畫面預覽）
 js/export-pdf.js    A4 分頁 PDF 輸出
 js/export-dxf.js    DXF 輸出
+js/export-seamly.js Seamly2D .sm2d 輸出
 js/app.js           介面控制
 ```

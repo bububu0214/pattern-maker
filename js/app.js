@@ -43,7 +43,7 @@
     applyZoom();
     showWarnings(res.warnings);
     showInfo(res.info, v);
-    ['dlPdf', 'dlSvg', 'dlDxf'].forEach(function (id) { document.getElementById(id).disabled = false; });
+    ['dlPdf', 'dlSvg', 'dlDxf', 'dlSeamly'].forEach(function (id) { document.getElementById(id).disabled = false; });
   }
 
   function applyZoom() {
@@ -130,6 +130,16 @@
   };
   document.getElementById('dlDxf').onclick = function () {
     if (current) download(PM.toDXF(current.model), stamp() + '.dxf', 'application/dxf');
+  };
+  document.getElementById('dlSeamly').onclick = function () {
+    if (!current) return;
+    var v = current.v;
+    var desc = '女裝基本上身原型 Women\'s basic bodice block. ' +
+      'Bust ' + v.bust + '+' + v.easeBust + ', Waist ' + v.waist + '+' + v.easeWaist +
+      ', Shoulder ' + v.shoulder + ', Back length ' + v.backLen + ', Front length ' + v.frontLen +
+      ', Neck ' + v.neck + '+' + v.easeNeck + ', Armhole ' + v.armhole + '+' + v.easeArmhole + ' (cm)';
+    download(PM.toSeamly(current.res, { sa: v.sa, cbFold: v.cbFold, cfFold: v.cfFold, description: desc }),
+      stamp() + '.sm2d', 'application/xml');
   };
   document.getElementById('dlPdf').onclick = function () {
     if (!current) return;

@@ -25,9 +25,13 @@
     var nwF = nwB - 0.2;
     var ndF = nwF + 0.5;
     // 後領：後頸點 (0, riseB) → 側頸點 (nwB, 0)
-    var back = G.cubic(P(0, riseB), P(nwB * 0.6, riseB), P(nwB, riseB * 0.55), P(nwB, 0));
+    var bb = [P(0, riseB), P(nwB * 0.6, riseB), P(nwB, riseB * 0.55), P(nwB, 0)];
+    var back = G.cubic(bb[0], bb[1], bb[2], bb[3]);
+    back.bez = [bb];
     // 前領：前頸點 (0, ndF) → 側頸點 (nwF, 0)
-    var front = G.cubic(P(0, ndF), P(nwF * 0.58, ndF), P(nwF, ndF * 0.5), P(nwF, 0));
+    var fb = [P(0, ndF), P(nwF * 0.58, ndF), P(nwF, ndF * 0.5), P(nwF, 0)];
+    var front = G.cubic(fb[0], fb[1], fb[2], fb[3]);
+    front.bez = [fb];
     return { nwB: nwB, riseB: riseB, nwF: nwF, ndF: ndF, back: back, front: front };
   }
 
@@ -37,9 +41,13 @@
     var Gp = P(crossX, S.y + depth * 0.5);
     var perp = P(-shoulderDir.y, shoulderDir.x); // 垂直肩線向下
     var l1 = G.dist(S, Gp);
-    var upper = G.cubic(S, G.add(S, G.mul(perp, l1 * 0.35)), P(Gp.x, Gp.y - l1 * 0.35), Gp, 24);
-    var lower = G.cubic(Gp, P(Gp.x, Gp.y + (U.y - Gp.y) * kv), P(U.x - (U.x - Gp.x) * kh, U.y), U, 24);
-    return upper.concat(lower.slice(1));
+    var b1 = [S, G.add(S, G.mul(perp, l1 * 0.35)), P(Gp.x, Gp.y - l1 * 0.35), Gp];
+    var b2 = [Gp, P(Gp.x, Gp.y + (U.y - Gp.y) * kv), P(U.x - (U.x - Gp.x) * kh, U.y), U];
+    var upper = G.cubic(b1[0], b1[1], b1[2], b1[3], 24);
+    var lower = G.cubic(b2[0], b2[1], b2[2], b2[3], 24);
+    var out = upper.concat(lower.slice(1));
+    out.bez = [b1, b2]; // 原始曲線控制點（Seamly2D 輸出用）
+    return out;
   }
 
   function draft(m, ease) {
@@ -108,9 +116,9 @@
     var back = {
       key: 'back', zh: '後片', en: 'BACK BODICE', centerZh: '後中', centerEn: 'CB',
       edges: [
-        { name: 'neck', pts: neck.back },
+        { name: 'neck', pts: neck.back, bez: neck.back.bez },
         { name: 'shoulder', pts: [P(neck.nwB, 0), SB] },
-        { name: 'armhole', pts: arm.back },
+        { name: 'armhole', pts: arm.back, bez: arm.back.bez },
         { name: 'side', pts: [P(bw, yB), sideWB] },
         { name: 'waist', pts: [sideWB, P(0, yWB)] },
         { name: 'center', pts: [P(0, yWB), P(0, neck.riseB)] }
@@ -138,9 +146,9 @@
     var front = {
       key: 'front', zh: '前片', en: 'FRONT BODICE', centerZh: '前中', centerEn: 'CF',
       edges: [
-        { name: 'neck', pts: neck.front },
+        { name: 'neck', pts: neck.front, bez: neck.front.bez },
         { name: 'shoulder', pts: [P(neck.nwF, 0), SF] },
-        { name: 'armhole', pts: arm.front },
+        { name: 'armhole', pts: arm.front, bez: arm.front.bez },
         { name: 'side', pts: [P(fw, yB), sideWF] },
         { name: 'waist', pts: frontWaistPts },
         { name: 'center', pts: [P(0, yWF), P(0, neck.ndF)] }
