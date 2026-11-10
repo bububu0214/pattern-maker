@@ -1,4 +1,16 @@
-// All product data lives here. In the real shop this comes from Shopify.
+// All shop data lives here: edit this file to change products, fabrics and prices.
+
+const SHOP = {
+  name: "Little Hap.B",
+  // WhatsApp number orders go to: 852 + 8-digit phone, no "+" or spaces, e.g. "85291234567"
+  whatsapp: "",
+  pay: "FPS / PayMe",
+  delivery: ["順豐到付", "工作室自取（預約時間）"],
+};
+
+// true = lay the fabric onto the garment photo in the browser (flat, not very realistic)
+// false = show the garment photo with a fabric swatch, and send a mock-up over WhatsApp
+const LIVE_TRYON = false;
 // Prices, lead times and stock are placeholders — change them to the real ones.
 
 const FABRICS = {

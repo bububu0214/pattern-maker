@@ -87,17 +87,95 @@
     $("#drawer").classList.add("on");
     $("#scrim").classList.add("on");
   });
-  $("#checkoutBtn").addEventListener("click", () => {
+  // ---------- checkout: order goes out as a WhatsApp message ----------
+  const orderId = () => {
+    const d = new Date();
+    const r = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `HB${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${r}`;
+  };
+
+  function orderText(id, c) {
+    const lines = [`你好 ${SHOP.name}！我想落單`, `訂單編號：${id}`, ""];
+    cart.forEach((it, i) => {
+      lines.push(`${i + 1}. ${it.name}　${money(it.price)}`);
+      it.lines.forEach(l => lines.push(`   · ${l}`));
+      if (it.note) lines.push(`   · 備註：${it.note}`);
+    });
+    lines.push("", `合計：${money(cart.reduce((s, it) => s + it.price, 0))}`, "");
+    lines.push(`姓名：${c.name}`, `電話：${c.phone}`, `取貨：${c.delivery}${c.address ? "（" + c.address + "）" : ""}`);
+    if (c.note) lines.push(`備註：${c.note}`);
+    if (cart.some(it => it.ownFabric)) lines.push("", "（我會喺呢度傳埋布料相俾你）");
+    return lines.join("\n");
+  }
+
+  function openCheckout() {
     const hasCustom = cart.some(it => it.custom);
+    openModal(`
+      <form class="checkout" id="checkoutForm" novalidate>
+        <div class="eyebrow">checkout</div>
+        <h2>落單資料<span class="en">Your details</span></h2>
+        <div class="field"><label for="c-name">姓名</label><input id="c-name" name="name" required autocomplete="name"></div>
+        <div class="field"><label for="c-phone">WhatsApp 電話</label><input id="c-phone" name="phone" required inputmode="tel" autocomplete="tel" placeholder="例如 9123 4567"></div>
+        <div class="field"><label for="c-del">取貨方式</label>
+          <select id="c-del" name="delivery">${SHOP.delivery.map(d => `<option>${esc(d)}</option>`).join("")}</select></div>
+        <div class="field" id="addrField"><label for="c-addr">地址／順豐站 <span class="opt">順豐先要填</span></label><input id="c-addr" name="address" autocomplete="street-address"></div>
+        <div class="field"><label for="c-note">備註 <span class="opt">選填</span></label><textarea id="c-note" name="note"></textarea></div>
+        <p class="policy">${hasCustom ? "訂製款需全額付款。" : ""}我哋喺 WhatsApp 確認訂單（現貨、尺寸、布料）之後，會傳 ${esc(SHOP.pay)} 付款資料俾你，付款後訂單先正式成立。</p>
+        <button class="btn block" type="submit">下一步：用 WhatsApp 傳送訂單</button>
+      </form>`);
+    const form = $("#checkoutForm");
+    const toggleAddr = () => { $("#addrField").style.display = form.delivery.value.includes("順豐") ? "" : "none"; };
+    form.delivery.addEventListener("change", toggleAddr);
+    toggleAddr();
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const c = Object.fromEntries(new FormData(form));
+      Object.keys(c).forEach(k => { c[k] = String(c[k]).trim(); });
+      const bad = [];
+      if (!c.name) bad.push("c-name");
+      if (c.phone.replace(/\D/g, "").length < 8) bad.push("c-phone");
+      if (c.delivery.includes("順豐") && !c.address) bad.push("c-addr");
+      $$(".field", form).forEach(f => f.classList.remove("bad"));
+      bad.forEach(id => $("#" + id).closest(".field").classList.add("bad"));
+      if (bad.length) { toast("請填好紅色嘅欄位"); return; }
+      if (!c.delivery.includes("順豐")) c.address = "";
+      showSend(orderText(orderId(), c));
+    });
+  }
+
+  function showSend(text) {
+    const wa = SHOP.whatsapp ? `https://wa.me/${SHOP.whatsapp}?text=${encodeURIComponent(text)}` : "";
+    openModal(`
+      <div class="checkout">
+        <div class="eyebrow">almost there</div>
+        <h2>傳送訂單<span class="en">Send it on WhatsApp</span></h2>
+        <p class="hint">㩒下面個掣會打開 WhatsApp，訂單內容已經寫好，㩒傳送就得。</p>
+        <pre class="order-text">${esc(text)}</pre>
+        ${wa ? `<a class="btn block" href="${wa}" target="_blank" rel="noopener">打開 WhatsApp 傳送</a>`
+             : `<p class="policy">示意版未設定 WhatsApp 號碼：喺 data.js 嘅 SHOP.whatsapp 填返你嘅號碼就用得。</p>`}
+        <button class="btn ghost block" id="copyOrder" type="button">複製訂單內容</button>
+        <button class="btn ghost block" id="doneOrder" type="button">已經傳送，清空購物袋</button>
+      </div>`);
+    $("#copyOrder").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(text); toast("已複製"); }
+      catch { toast("複製唔到，請長按上面文字自己複製"); }
+    });
+    $("#doneOrder").addEventListener("click", () => {
+      cart = [];
+      saveCart();
+      openModal(`
+        <div class="message">
+          <div class="seal">Hap.B</div>
+          <h2>多謝你<span class="en">Thank you for slowing down.</span></h2>
+          <p class="lede">我哋收到 WhatsApp 之後會盡快回覆你，確認好就會傳付款資料。</p>
+          <button class="btn" data-close type="button">返回</button>
+        </div>`);
+    });
+  }
+
+  $("#checkoutBtn").addEventListener("click", () => {
     closeAll();
-    setTimeout(() => openModal(`
-      <div class="message">
-        <div class="seal">Hap.B</div>
-        <h2>多謝你</h2>
-        <p class="lede">呢度係示意原型。正式版會喺呢一步轉去 Shopify 結帳頁，用信用卡、Apple Pay、FPS 等方式付款。</p>
-        ${hasCustom ? `<p class="policy">訂製款需全額付款，我哋收到款後會用 WhatsApp 或者電郵同你確認尺寸先開工。</p>` : ""}
-        <button class="btn" data-close type="button">返回</button>
-      </div>`), 300);
+    setTimeout(openCheckout, 300);
   });
 
   // =========================================================
@@ -112,7 +190,10 @@
   const DEMO_FABRICS = [["img/sw-cats.jpg", "貓咪"], ["img/sw-floral.jpg", "花草"], ["img/sw-snowcat.jpg", "童話"], ["img/sw-embroid.jpg", "刺繡"]];
   const fabricKeys = s => [...Object.keys(s.photos), ...(s.liveFabrics || [])];
   // fabric shown by laying it onto the photo (uploaded, or a shop fabric with no photo yet)
-  const isLive = s => !!(s && s.tryon && flow.fabric && (flow.fabric === "upload" || !s.photos[flow.fabric]));
+  // no finished photo for this style + fabric (uploaded fabric, or a new shop fabric)
+  const noPhoto = s => !!(s && flow.fabric && (flow.fabric === "upload" || !s.photos[flow.fabric]));
+  const isLive = s => LIVE_TRYON && !!(s && s.tryon) && noPhoto(s);
+  const fabricThumb = () => flow.fabric === "upload" ? flow.upload : flow.fabric ? FABRICS[flow.fabric].swatch : null;
   const fabricInfo = () => flow.fabric === "upload" ? UPLOAD : flow.fabric ? FABRICS[flow.fabric] : null;
 
   const styleOf = () => CUSTOM_STYLES.find(s => s.id === flow.style);
@@ -159,7 +240,10 @@
     }
     const f = fabricInfo();
     const isUp = isLive(s);
-    p.innerHTML = `<div class="pic">${isUp ? `<canvas id="tryCanvas" aria-label="試身效果"></canvas>` : pic((flow.fabric && s.photos[flow.fabric]) || s.cover, s.name)}</div>
+    const photo = isUp ? `<canvas id="tryCanvas" aria-label="試身效果"></canvas>`
+      : noPhoto(s) ? `${pic(s.cover, s.name)}<span class="fab-badge"><img src="${fabricThumb()}" alt="${esc(f.name)}"></span>`
+      : pic((flow.fabric && s.photos[flow.fabric]) || s.cover, s.name);
+    p.innerHTML = `<div class="pic">${photo}</div>
       <div class="info">
         <h3>${esc(s.name)}<span class="en">${esc(s.en)}</span></h3>
         <div class="line"><span>布料</span><b>${f ? esc(f.name) : "—"}</b></div>
@@ -229,14 +313,17 @@
             <div class="plus">${fb.extra ? "+" + money(fb.extra) : "不另加錢"}</div>
           </button>`;
         }).join("")}
-        ${s.tryon ? `<label class="fabric upload ${up ? "on" : ""}">
+        ${s.tryon || !LIVE_TRYON ? `<label class="fabric upload ${up ? "on" : ""}">
             <input type="file" accept="image/*" data-upload hidden>
             <div class="swatch">${up && flow.upload ? `<img src="${flow.upload}" alt="">` : `<span class="plus-big">＋</span>`}</div>
             <div class="name">上傳你嘅布</div>
             <div class="plus">Upload fabric</div>
           </label>` : ""}
       </div>
-      ${s.tryon ? `<div class="tryon-box">
+      ${!LIVE_TRYON ? `<div class="tryon-box">
+          <p><b>想用自己鍾意嘅布？</b>上傳一張布嘅相，落單後我哋會喺 WhatsApp 傳效果圖同報價俾你。</p>
+          <p class="hint">影相貼士：布平鋪、正面影、光線平均，影大範圍啲。</p>
+        </div>` : s.tryon ? `<div class="tryon-box">
           <p><b>想用自己鍾意嘅布？</b>上傳一張布嘅相，即刻睇到佢變成${esc(s.name)}${s.tryon.part === "前幅" ? "（換前幅，袖保留素色）" : ""}嘅樣。</p>
           <p class="hint">影相貼士：布平放、正面影、光線平均，唔好有影。</p>
           <div class="demo">未有相？試吓：${DEMO_FABRICS.map(([src, n]) => `<button class="chip" data-demo="${src}" type="button">${n}</button>`).join("")}</div>
@@ -245,7 +332,7 @@
             </label>
             <label class="check"><input type="checkbox" data-mirror ${flow.mirror ? "checked" : ""}> 鏡像拼接：見到布嘅接駁線先開，適合花草、格仔，人物動物圖案會變對稱</label>` : ""}
         </div>` : ""}
-      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.desc)}。${up ? "落單後我哋會聯絡你，傾布料嘅安排。" : isLive(s) ? "呢塊布未有成品相，圖為電腦示意，以實物為準。" : ""}</div>` : ""}
+      ${f ? `<div class="fabric-note"><b>${esc(f.name)}</b>：${esc(f.desc)}。${up ? "落單後請喺 WhatsApp 傳返呢張布相俾我哋。" : noPhoto(s) ? (LIVE_TRYON ? "呢塊布未有成品相，圖為電腦示意，以實物為準。" : "呢塊布未有成品相，落單後我哋會喺 WhatsApp 傳效果圖俾你。") : ""}</div>` : ""}
       <div class="flow-nav">
         <button class="btn ghost" data-prev type="button">上一步</button>
         <button class="btn" data-next type="button" ${flow.fabric ? "" : "disabled"}>下一步：入尺寸</button>
@@ -328,7 +415,7 @@
         flow.style = st.dataset.style;
         // keep fabric only if the new style offers it
         const ns = styleOf();
-        if (!fabricKeys(ns).includes(flow.fabric) && !(flow.fabric === "upload" && ns.tryon)) flow.fabric = null;
+        if (!fabricKeys(ns).includes(flow.fabric) && !(flow.fabric === "upload" && (ns.tryon || !LIVE_TRYON))) flow.fabric = null;
       }
       renderFlow();
       return;
@@ -347,8 +434,9 @@
       const s = styleOf();
       addToCart({
         custom: true, name: s.name + "（訂製）", price: priceOf(),
-        img: isLive(s) ? (flow.thumb || s.tryon.base) : s.photos[flow.fabric],
-        lines: [fabricInfo().name, ...s.measures.map(k => `${MEASURES[k].label}${flow.m[k]}`)],
+        img: isLive(s) ? (flow.thumb || s.tryon.base) : (s.photos[flow.fabric] || s.cover),
+        ownFabric: flow.fabric === "upload", note: flow.note,
+        lines: [`布料：${fabricInfo().name}`, `尺寸（cm）：${s.measures.map(k => `${MEASURES[k].label}${flow.m[k]}`).join("、")}`],
       });
       toast("已加入購物袋");
       Object.assign(flow, { step: 0, style: null, fabric: null, note: "", agree: false });
