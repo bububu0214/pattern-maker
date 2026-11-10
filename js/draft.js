@@ -411,43 +411,70 @@
     var puff = Math.max(0, st.sleevePuff || 0);
     var h = fit.capH(AH) + puff * 0.35;
 
-    // 袖山弧（前 = 左邊 −x，後 = 右邊 +x）
+    // 袖山弧（文化式）：前 = 左邊 −x，後 = 右邊 +x
+    //   前斜線 = 前夾圈，後斜線 = 後夾圈 + 1
+    //   前：上 1/4 向外 1.8、中點向下 1 cm（轉折點）、下 1/4 向內 1.3
+    //   後：上 1/4 向外 1.9、由夾底量前斜線 1/4 長嘅位貼斜線、下段微凹 0.5
+    var sc = clamp(h / (AH / 4 + 2.5), 0.45, 1.2);        // 袖山低（寬鬆）時凹凸按比例減細
+    function smooth(pts, tans) {
+      var out = [];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var a = pts[i], b = pts[i + 1], d = G.dist(a, b) / 3;
+        out.push([a, G.add(a, G.mul(tans[i], d)), G.sub(b, G.mul(tans[i + 1], d)), b]);
+      }
+      return out;
+    }
+    function tangents(pts, fixed) {
+      return pts.map(function (p, i) {
+        if (fixed[i]) return fixed[i];
+        var a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        return G.norm(G.sub(b, a));
+      });
+    }
     function cap(k) {
       var T = P(0, 0);
-      var Lf = ahF * k, Lb = (ahB + 0.3) * k;
+      var Lf = ahF * k, Lb = (ahB + 1) * k;
       var wf = Math.sqrt(Math.max(1, Lf * Lf - h * h)), wb = Math.sqrt(Math.max(1, Lb * Lb - h * h));
       var Uf = P(-wf, h), Ub = P(wb, h);
-      var Jf = G.lerp(T, Uf, 0.5), Jb = G.lerp(T, Ub, 0.45);
       var df = G.norm(G.sub(Uf, T)), db = G.norm(G.sub(Ub, T));
-      var front = [
-        [T, P(-wf * 0.32, 0), G.sub(Jf, G.mul(df, Lf * 0.17)), Jf],
-        [Jf, G.add(Jf, G.mul(df, Lf * 0.17)), P(Uf.x + wf * 0.28, h), Uf]
-      ];
-      var back = [
-        [T, P(wb * 0.34, 0), G.sub(Jb, G.mul(db, Lb * 0.17)), Jb],
-        [Jb, G.add(Jb, G.mul(db, Lb * 0.2)), P(Ub.x - wb * 0.22, h), Ub]
-      ];
-      return { front: front, back: back, Uf: Uf, Ub: Ub, T: T };
+      var outF = P(df.y, -df.x); if (outF.y > 0 || outF.x > 0) outF = G.mul(outF, -1);   // 前斜線外側（左上）
+      var outB = P(-db.y, db.x); if (outB.y > 0 || outB.x < 0) outB = G.mul(outB, -1);   // 後斜線外側（右上）
+      var f1 = G.add(G.add(T, G.mul(df, Lf * 0.25)), G.mul(outF, 1.8 * sc));
+      var fm = G.add(T, G.mul(df, Lf * 0.5 + 1 * sc));
+      var f3 = G.sub(G.add(T, G.mul(df, Lf * 0.75)), G.mul(outF, 1.3 * sc));
+      var b1 = G.add(G.add(T, G.mul(db, Lb * 0.25)), G.mul(outB, 1.9 * sc));
+      var bc = G.sub(Ub, G.mul(db, Lf * 0.25));                // 後：貼斜線點
+      var b3 = G.sub(G.lerp(bc, Ub, 0.5), G.mul(outB, 0.5 * sc));
+      var pts = [Uf, f3, fm, f1, T, b1, bc, b3, Ub];
+      var tans = tangents(pts, { 4: P(1, 0) });
+      // 夾底：曲線離開時偏向水平少少（同衣身夾底順接）
+      tans[0] = G.norm(G.add(G.norm(G.sub(f3, Uf)), P(0.35, 0)));
+      tans[8] = G.norm(G.sub(Ub, b3));
+      var list = smooth(pts, tans);                             // Uf → T → Ub
+      return { list: list, front: list.slice(0, 4), back: list.slice(4), Uf: Uf, Ub: Ub, T: T };
     }
-    function capLen(c) { return c.front.concat(c.back).reduce(function (s, b) { return s + cubicLen(b); }, 0); }
+    function capLen(c) { return c.list.reduce(function (s2, b) { return s2 + cubicLen(b); }, 0); }
     var ks = G.solve(function (k) { return capLen(cap(k)); }, AH + fit.capEase + puff, 0.75, 1.6);
     var c = cap(ks.x);
 
-    // 剪口位：由夾底量返衣身夾圈下半段長度
+    // 剪口位：由夾底量返衣身夾圈下半段長度（前 +0.2、後 +0.3 吃勢）
     var lowF = cubicLen(bod.armF[1]), lowB = cubicLen(bod.armB[1]);
-    // 前：Uf → T 方向
-    var fRev = reverseBez(c.front); // [Uf→Jf, Jf→T]
-    var capF;
-    if (lowF + 0.2 < cubicLen(fRev[0])) { var sf = splitAtLen(fRev[0], lowF + 0.2); capF = [sf[0], sf[1], fRev[1]]; }
-    else capF = fRev;
-    var nF = capF[0][3];
-    // 後：T → Ub；由 Ub 量起
-    var bRev = reverseBez(c.back); // [Ub→Jb, Jb→T]
-    var capB;
-    if (lowB + 0.3 < cubicLen(bRev[0])) { var sb = splitAtLen(bRev[0], lowB + 0.3); capB = [sb[0], sb[1], bRev[1]]; }
-    else capB = bRev;
-    var nB = capB[0][3];
-    var capList = capF.concat(reverseBez(capB)); // Uf → T → Ub
+    function splitFromStart(list, d) {
+      var acc = 0, out = [], pt = null;
+      for (var i = 0; i < list.length; i++) {
+        var Lb2 = cubicLen(list[i]);
+        if (!pt && d > acc + 0.05 && d < acc + Lb2 - 0.05) {
+          var sp = splitAtLen(list[i], d - acc);
+          out.push(sp[0], sp[1]); pt = sp[0][3];
+        } else out.push(list[i]);
+        acc += Lb2;
+      }
+      return { list: out, p: pt };
+    }
+    var sF = splitFromStart(c.front, lowF + 0.2);
+    var sB = splitFromStart(reverseBez(c.back), lowB + 0.3);
+    var nF = sF.p || c.front[0][3], nB = sB.p || c.back[c.back.length - 1][0];
+    var capList = sF.list.concat(reverseBez(sB.list)); // Uf → T → Ub
 
     // 袖身
     var useCuff = st.cuff === 'band' && (st.sleeve === 'long' || st.sleeve === 'elbow');
