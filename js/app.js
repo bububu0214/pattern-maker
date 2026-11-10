@@ -9,7 +9,7 @@
   var current = null;
   var zoom = 0; // 0 = 全圖；否則每厘米像素
 
-  var NUM = ['bust', 'waist', 'hip', 'shoulder', 'backLen', 'frontLen', 'neck', 'armhole',
+  var NUM = ['bust', 'bustF', 'bustB', 'waist', 'hip', 'shoulder', 'backLen', 'frontLen', 'neck', 'armhole',
     'waistToHip', 'armLen', 'upperArm', 'wrist',
     'easeBust', 'easeWaist', 'easeHip', 'easeNeck', 'easeArmhole', 'sa',
     'neckWiden', 'neckDropF', 'neckDropB', 'hemLen', 'flare', 'sleeveLen', 'ext', 'collarW', 'cuffH',
@@ -65,13 +65,13 @@
     B = v.bust;
     fill('shoulder', 0.22 * B + 19.5);
     fill('backLen', 38);
-    fill('frontLen', v.backLen + 4);
+    fill('frontLen', v.backLen + 4 + Math.max(0, B - 84) * 0.15);   // 胸大前長要長啲
     fill('neck', 0.21 * B + 18.4);
-    fill('armhole', B / 2 - 2);
+    fill('armhole', 0.4 * B + 6.4);
     fill('waistToHip', 18);
     fill('armLen', 56);
     fill('upperArm', 0.32 * B);
-    fill('wrist', 0.19 * B);
+    fill('wrist', 0.1 * B + 8);
     fill('crotchDepth', v.hip / 4 + 3.5);
     fill('outseam', 96);
     v._est = est;
@@ -80,7 +80,7 @@
   function coreMeas(g) { return g === 'skirt' || g === 'trousers' ? ['waist', 'hip'] : ['bust']; }
   function writeForm(v) {
     NUM.forEach(function (k) {
-      if (v[k] === null && MEAS_ZH[k]) form.elements[k].value = '';
+      if (v[k] === null && (MEAS_ZH[k] || k === 'bustF' || k === 'bustB')) form.elements[k].value = '';
       else if (v[k] != null && !isNaN(v[k])) form.elements[k].value = v[k];
     });
     SEL.forEach(function (k) { if (v[k]) form.elements[k].value = v[k]; });
@@ -194,6 +194,7 @@
     var bad = NUM.filter(function (k) {
       var el = form.elements[k], lab = el.closest('label');
       if (el.disabled || (lab && lab.hidden)) return false;
+      if ((k === 'bustF' || k === 'bustB') && el.value.trim() === '') return false;   // 可留空
       return isNaN(v[k]) || !el.checkValidity();
     });
     if (bad.length) {
@@ -210,7 +211,7 @@
     });
 
     var m = {
-      bust: v.bust, waist: v.waist, hip: v.hip, shoulder: v.shoulder, backLen: v.backLen, frontLen: v.frontLen,
+      bust: v.bust, bustF: v.bustF, bustB: v.bustB, waist: v.waist, hip: v.hip, shoulder: v.shoulder, backLen: v.backLen, frontLen: v.frontLen,
       neck: v.neck, armhole: v.armhole, waistToHip: v.waistToHip, armLen: v.armLen, upperArm: v.upperArm, wrist: v.wrist,
       crotchDepth: v.crotchDepth, outseam: v.outseam
     };
@@ -888,7 +889,7 @@
   });
 
   // 俾「睇相快選」用
-  window.PMApp = { generate: generate, syncControls: syncControls, readForm: readForm };
+  window.PMApp = { generate: generate, syncControls: syncControls, readForm: readForm, getCurrent: function () { return current; } };
 
   /* ---------- 啟動 ---------- */
   form.addEventListener('submit', function (e) { e.preventDefault(); generate(); });

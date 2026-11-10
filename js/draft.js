@@ -190,6 +190,10 @@
 
     // 胸圍
     var bw = B / 4 - 0.5, fw = B / 4 + 0.5;
+    if (m.bustF > 0 && m.bustB > 0) {               // 有量前胸闊／後胸闊（半身）：按實際比例分
+      fw = B / 2 * m.bustF / (m.bustF + m.bustB); bw = B / 2 - fw;
+      if (Math.abs(m.bustF + m.bustB - m.bust) > 4) warnings.push('前胸闊＋後胸闊（' + f1(m.bustF + m.bustB) + '）同胸圍（' + f1(m.bust) + '）差好遠，請檢查；已按比例分前後。');
+    }
     var crossB = Math.min(bsx - 1.5, bw - 1.5), crossF = Math.min(SF.x - 1.5, fw - 2);
 
     // 夾圈深：令前後夾圈總長 = 夾圈
@@ -1012,9 +1016,9 @@
     if (st.garment === 'trousers' && PM.draftTrousers) return PM.draftTrousers(m, ease, st);
     if (st.garment === 'dress') return draftDress(m, ease, st);
     var warnings = [];
-    if (['mandarin', 'shirt', 'convertible'].indexOf(st.collar) >= 0 && (st.neckline !== 'round' || st.neckDropF > 2 || st.neckWiden > 1.5)) {
+    if (['mandarin', 'shirt', 'convertible', 'notched'].indexOf(st.collar) >= 0 && (st.neckline !== 'round' || st.neckDropF > 2 || st.neckWiden > 1.5)) {
       st.neckline = 'round'; st.neckWiden = 0; st.neckDropF = 0; st.neckDropB = 0;
-      warnings.push('企領／恤衫領／翻領要配貼頸圓領口，已將領口改返基本圓領。');
+      warnings.push('企領／恤衫領／翻領／西裝領要配貼頸圓領口，已將領口改返基本圓領。');
     }
     if (st.collar === 'notched' && !st.opening) { st.opening = true; st.ext = Math.max(st.ext || 2, 2.5); }
     var bod = bodice(m, ease, st, warnings);

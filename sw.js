@@ -1,5 +1,5 @@
 /* 離線用：第一次開過之後，冇網都用到 */
-var CACHE = 'pattern-maker-v5';
+var CACHE = 'pattern-maker-v6';
 var FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'js/geom.js', 'js/draft.js', 'js/draft-skirt.js', 'js/draft-trousers.js', 'js/modify.js', 'js/layout.js',

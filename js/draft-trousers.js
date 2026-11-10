@@ -26,7 +26,8 @@
     var kneeF = legs[0] * hipScale, hemF = legs[1] * hipScale;
     var hemSa = st.hemSa;
 
-    function piece(isFront) {
+    function piece(isFront, adj) {
+      adj = adj || { out: 0, inn: 0 };
       var hipW = isFront ? Ht / 4 - 1 : Ht / 4 + 1;
       var ext = isFront ? 0.045 * Ht : 0.11 * Ht;                      // 前襠寬 0.045H、後襠寬 0.11H（中文褲原型常用）
       var drop = isFront ? 0 : 0.7;                                  // 後浪點落低
@@ -85,6 +86,8 @@
         hemOut = G.lerp(sideCrotch, kneeOut, tt); hemOut = P(hemOut.x, L);
       }
 
+      // 後片褲腳角微調，令前後側骨、內浪一樣長
+      hemOut = P(hemOut.x, hemOut.y + adj.out); hemIn = P(hemIn.x, hemIn.y + adj.inn);
       // 側骨：腰 →（臀位弧）→ 臀 → 浪位水平 → 膝 → 腳
       var hipP = P(hipW, D);
       var side = [];
@@ -179,7 +182,12 @@
       return pc;
     }
 
-    var back = piece(false), front = piece(true);
+    var front = piece(true), back = piece(false), adjB = { out: 0, inn: 0 };
+    for (var it = 0; it < 3; it++) {
+      adjB.out += front.info.outseam - back.info.outseam;
+      adjB.inn += front.info.inseam - back.info.inseam;
+      back = piece(false, adjB);
+    }
     var diff = back.info.inseam - front.info.inseam;
     if (Math.abs(diff) > 1.5) warnings.push('前後內浪長度差 ' + f1(diff) + ' cm，車嘅時候要縮縫或者修順。');
 
