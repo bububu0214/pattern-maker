@@ -109,3 +109,9 @@ select { width: 100%; padding: 6px 8px; font-size: 1rem; border: 1px solid #ccc;
 #aiResult .ai { margin-top: 8px; padding: 8px 10px; background: #eef4ff; border-left: 4px solid #2e5fa8; border-radius: 4px; font-size: .88rem; }
 #aiResult .ai.err { background: #fdecea; border-color: #d0342c; }
 #aiResult .ai p { margin: 4px 0; }
+
+label.req { display: block; margin: 8px 0; }
+label.req textarea {
+  display: block; width: 100%; margin-top: 4px; padding: 8px; font-size: 1rem; font-family: inherit;
+  border: 1px solid #ccc; border-radius: 6px; resize: vertical;
+}

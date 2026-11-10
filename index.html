@@ -15,12 +15,15 @@
   <main>
     <form id="form" class="panel" autocomplete="off">
       <fieldset class="upload">
-        <legend>① 上傳款式圖（可選）</legend>
+        <legend>① 上傳款式圖／寫低要求（可選）</legend>
         <label class="file-btn">
           <input type="file" id="styleImage" accept="image/*" multiple>
           <span id="fileBtnText">＋ 加相（前面、後面、細節都得）</span>
         </label>
         <div id="thumbs"></div>
+        <label class="req">你嘅要求（可選）
+          <textarea id="request" rows="3" maxlength="600" placeholder="例如：唔要口袋、袖長啲、領口開大少少、衫長 65 cm、要 A 字下擺"></textarea>
+        </label>
         <button type="button" id="analyze" hidden>AI 分析款式</button>
         <p id="aiHint" class="hint">可以加幾張相（例如前面一張、後面一張），每張下面揀返係邊個角度。喺 claude.ai 網上版可以用 AI 自動認出款式；其他情況可以參考張圖，喺下面自己揀款式。</p>
         <div id="aiResult"></div>

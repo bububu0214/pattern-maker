@@ -248,8 +248,13 @@
   var analyzeBtn = document.getElementById('analyze');
   var aiHint = document.getElementById('aiHint');
   var aiResult = document.getElementById('aiResult');
+  var reqBox = document.getElementById('request');
   var images = []; // [{file, url, view}]
-  var maxImages = 6, sampleFn = null, aiBusy = false;
+  var maxImages = 6, sampleFn = null, imagesOK = false, aiBusy = false;
+  function updateAnalyze() {
+    analyzeBtn.hidden = !(sampleFn && ((imagesOK && images.length) || reqBox.value.trim()));
+  }
+  reqBox.addEventListener('input', updateAnalyze);
   var VIEWS = { front: '前面', back: '後面', side: '側面', detail: '細節' };
   var VIEW_EN = { front: 'front view', back: 'back view', side: 'side view', detail: 'close-up detail' };
 
@@ -273,7 +278,7 @@
       d.appendChild(img); d.appendChild(sel); d.appendChild(rm);
       thumbs.appendChild(d);
     });
-    analyzeBtn.hidden = !(sampleFn && images.length);
+    updateAnalyze();
     document.getElementById('fileBtnText').textContent = images.length
       ? '＋ 再加相（已有 ' + images.length + ' 張，最多 ' + maxImages + ' 張）'
       : '＋ 加相（前面、後面、細節都得）';
@@ -296,10 +301,12 @@
     window.claude.use('sample').then(function (s) {
       if (!s) return;
       return s.limits().then(function (lim) {
-        if (!lim || !lim.images) return;
         sampleFn = s;
-        maxImages = Math.max(1, Math.min(6, lim.images.maxCount || 1));
-        aiHint.textContent = '可以加幾張相（例如前面一張、後面一張），每張下面揀返係邊個角度，再撳「AI 分析款式」，AI 會綜合晒嚟認款式。';
+        imagesOK = !!(lim && lim.images);
+        if (imagesOK) maxImages = Math.max(1, Math.min(6, lim.images.maxCount || 1));
+        aiHint.textContent = imagesOK
+          ? '可以加幾張相（例如前面一張、後面一張），每張下面揀返係邊個角度；亦可以寫低你嘅要求。撳「AI 分析款式」，AI 會綜合晒嚟設定款式，你嘅要求優先。'
+          : '呢度用唔到 AI 睇相，但可以寫低你嘅要求，撳「AI 分析款式」由 AI 幫你設定款式。';
         renderThumbs();
       });
     }).catch(function () { /* 用唔到 AI：保持手動 */ });
@@ -348,8 +355,32 @@
     'summary: one short sentence in Traditional Chinese (Cantonese, Hong Kong style) describing the garment.',
     'fabricTip: in Traditional Chinese (Cantonese), ONLY if the garment mixes fabrics or colours by area: which pattern pieces to cut in which fabric (pieces: 前片, 後片, 袖, 衣領, 袖頭, 貼袋), e.g. "袖同袖頭用牛仔布，前後片用印花布". Otherwise "". Never mention prints or colours otherwise; they do not change the pattern.',
     'notes: in Traditional Chinese (Cantonese), list ONLY design details the generator CANNOT make (e.g. a collar of type other, gathers, ruffles, princess seams, yokes, asymmetry, wrap fronts, pocket flaps, side pockets). Do not list anything it can make, nor fabric/print/colour. "" if none.',
-    'If the image is not a garment or has no top, set "isTop": false and explain in "summary".'
+    'If the image is not a garment or has no top, set "isTop": false and explain in "summary".',
+    'Also include "cm": {"neckWiden": null, "neckDropF": null, "neckDropB": null, "hemLen": null, "sleeveLen": null, "flare": null, "collarW": null, "cuffH": null}',
+    'and "requestReply": "". Put a number (cm) in "cm" ONLY when the user\'s request asks for a specific or relative size; otherwise null.',
+    'cm meanings: neckWiden = neckline widened per side along the shoulder; neckDropF / neckDropB = front / back neckline lowered from the base of the neck (negative raises it);',
+    'hemLen = length below the waistline (negative = above the waist); sleeveLen = sleeve length from the shoulder point; flare = A-line flare per side seam at the hem; collarW = collar width; cuffH = cuff height.',
+    'The USER REQUEST (if any) has priority over the images. Relative requests ("longer", "a bit wider") change the CURRENT SETTINGS by a sensible amount (usually 2-5 cm).',
+    'With no images, start from the CURRENT SETTINGS and change only what the request asks for (keep every other field as it is now).',
+    'requestReply: in Traditional Chinese (Cantonese), one or two short sentences on how the request was applied and anything in it the generator cannot do; "" if there was no request.'
   ].join('\n');
+
+  /** 而家嘅設定（俾 AI 參考） */
+  function currentSettings() {
+    var v = readForm();
+    var len = v.lengthPreset === 'custom'
+      ? (v.hemLen < -1 ? 'cropped' : v.hemLen < 8 ? 'waist' : v.hemLen < v.waistToHip + 10 ? 'hip' : v.hemLen < 45 ? 'tunic' : 'dress')
+      : v.lengthPreset;
+    var neckWidth = v.neckWiden >= 5 ? 'very_wide' : v.neckWiden >= 2.5 ? 'wide' : v.neckWiden >= 1 ? 'medium' : 'narrow';
+    var fnd = v.neckDropF >= 10 ? 'deep' : v.neckDropF >= 5 ? 'low' : v.neckDropF >= 1.5 ? 'medium' : 'high';
+    var bnd = v.neckDropB >= 3 ? 'low' : v.neckDropB >= 0.5 ? 'medium' : 'high';
+    return JSON.stringify({
+      neckline: v.neckline, neckWidth: neckWidth, frontNeckDepth: fnd, backNeckDepth: bnd, length: len, hem: v.hemShape,
+      sleeve: v.sleeve, fit: v.fit, frontOpening: v.opening, collar: v.collar, pocket: v.pocket, cuff: v.cuff,
+      cm: { neckWiden: v.neckWiden, neckDropF: v.neckDropF, neckDropB: v.neckDropB, hemLen: v.hemLen, sleeveLen: v.sleeveLen,
+        flare: v.flare, collarW: v.collarW, cuffH: v.cuffH }
+    });
+  }
 
   var LEVELS = {
     neckWidth: { narrow: 0, medium: 1.5, wide: 3.5, very_wide: 6 },
@@ -364,6 +395,9 @@
     hem: { straight: '直腳', aline: 'A 字' }
   };
   function pick(val, allowed, dflt) { return allowed.indexOf(val) >= 0 ? val : dflt; }
+
+  var lastRequest = '';
+  function num(v, lo, hi) { return typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null; }
 
   function applyAI(r) {
     var v = readForm();
@@ -394,11 +428,22 @@
     setVal('pocket', pick(r.pocket, ['none', 'left', 'right', 'both'], 'none'));
     var cuff = r.cuff === 'band' && (sleeve === 'long' || sleeve === 'elbow') ? 'band' : 'none';
     setVal('cuff', cuff);
+    // 要求入面有具體尺寸就用
+    var cm = r.cm || {};
+    var lim = { neckWiden: [0, 10], neckDropF: [-5, 25], neckDropB: [0, 20], hemLen: [-15, 90], sleeveLen: [0, 80], flare: [0, 30], collarW: [3, 15], cuffH: [2, 12] };
+    Object.keys(lim).forEach(function (k) {
+      var x = num(cm[k], lim[k][0], lim[k][1]);
+      if (x == null) return;
+      setVal(k, Math.round(x * 2) / 2);
+      if (k === 'hemLen') setVal('lengthPreset', 'custom');
+      if (k === 'flare' && x > 0) setVal('hemShape', 'aline');
+    });
     syncControls();
     var pocketZh = { left: '左胸貼袋', right: '右胸貼袋', both: '兩邊胸貼袋' }[form.elements.pocket.value];
 
-    aiResult.innerHTML = '<div class="ai"><p><b>AI 睇到：</b>' + esc(r.summary || '') + '</p>' +
-      '<p>已設定：' + ZH.neckline[neckline] + '、' + ZH.length[length] + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
+    aiResult.innerHTML = '<div class="ai"><p><b>' + (images.length && imagesOK ? 'AI 睇到：' : 'AI：') + '</b>' + esc(r.summary || '') + '</p>' +
+      (lastRequest && r.requestReply ? '<p><b>你嘅要求：</b>' + esc(r.requestReply) + '</p>' : '') +
+      '<p>已設定：' + ZH.neckline[neckline] + '、' + (num(cm.hemLen, -15, 90) != null ? '腰下 ' + form.elements.hemLen.value + ' cm' : ZH.length[length]) + '、' + ZH.hem[hem] + '、' + ZH.sleeve[sleeve] + '、' +
       ZH.fit[fit] + (r.frontOpening ? '、前中開胸（連門襟、貼邊）' : '') + (collar === 'peterpan' ? '、彼得潘圓領' : '') +
       (pocketZh ? '、' + pocketZh : '') + (cuff === 'band' ? '、袖頭' : '') + '</p>' +
       (r.fabricTip ? '<p>🧵 用布：' + esc(r.fabricTip) + '</p>' : '') +
@@ -409,15 +454,21 @@
   }
 
   analyzeBtn.addEventListener('click', function () {
-    if (!sampleFn || !images.length || aiBusy) return;
+    var request = reqBox.value.trim();
+    if (!sampleFn || aiBusy || !((imagesOK && images.length) || request)) return;
     aiBusy = true;
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = 'AI 分析緊…（大約半分鐘）';
     aiResult.innerHTML = '';
-    var list = images.slice(0, maxImages);
-    var desc = '\nThe images, in order: ' + list.map(function (im, i) { return 'image ' + (i + 1) + ' = ' + VIEW_EN[im.view]; }).join('; ') + '.';
+    var list = imagesOK ? images.slice(0, maxImages) : [];
+    var desc = '\n\n' + (list.length
+      ? 'The images, in order: ' + list.map(function (im, i) { return 'image ' + (i + 1) + ' = ' + VIEW_EN[im.view]; }).join('; ') + '.'
+      : 'There are NO images; work from the current settings and the request.') +
+      '\nCURRENT SETTINGS: ' + currentSettings() +
+      '\nUSER REQUEST: ' + (request ? JSON.stringify(request) : '(none)');
+    lastRequest = request;
     Promise.all(list.map(shrinkImage)).then(function (blobs) {
-      return sampleFn.json(AI_PROMPT + desc, { images: blobs });
+      return sampleFn.json(AI_PROMPT + desc, blobs.length ? { images: blobs } : {});
     }).then(function (r) {
       if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
       if (r.isTop === false) {
