@@ -9,15 +9,79 @@
 <body>
   <header>
     <h1>紙樣生成器</h1>
-    <p class="sub">女裝基本上身原型（前片、後片，連腰褶）</p>
+    <p class="sub">女裝上身：上傳款式圖 → 按你嘅尺寸出紙樣（前片、後片、袖）</p>
   </header>
 
   <main>
     <form id="form" class="panel" autocomplete="off">
+      <fieldset class="upload">
+        <legend>① 上傳款式圖（可選）</legend>
+        <label class="file-btn">
+          <input type="file" id="styleImage" accept="image/*">
+          <span>揀圖／影相</span>
+        </label>
+        <div id="imgWrap" hidden><img id="imgPreview" alt="款式圖預覽"></div>
+        <button type="button" id="analyze" hidden>AI 分析款式</button>
+        <p id="aiHint" class="hint">上傳衫嘅設計圖或者相。喺 claude.ai 網上版可以用 AI 自動認出款式；其他情況可以參考張圖，喺下面自己揀款式。</p>
+        <div id="aiResult"></div>
+      </fieldset>
+
       <fieldset>
-        <legend>身體尺寸（厘米）</legend>
+        <legend>② 款式</legend>
+        <label>領口
+          <select name="neckline">
+            <option value="round">圓領</option>
+            <option value="v">V 領</option>
+            <option value="square">方領</option>
+            <option value="boat">一字領</option>
+          </select></label>
+        <label>領口加闊 <input type="number" name="neckWiden" step="0.5" min="0" max="10" value="0"> <span>cm</span>
+          <small>每邊沿肩線開闊</small></label>
+        <label>前領加深 <input type="number" name="neckDropF" step="0.5" min="-5" max="25" value="0"> <span>cm</span>
+          <small>負數 = 升高（一字領）</small></label>
+        <label>後領加深 <input type="number" name="neckDropB" step="0.5" min="0" max="20" value="0"> <span>cm</span></label>
+        <label>衫長
+          <select name="lengthPreset">
+            <option value="cropped">短身（腰上）</option>
+            <option value="waist" selected>及腰</option>
+            <option value="hip">及臀</option>
+            <option value="tunic">長身（大髀）</option>
+            <option value="dress">連身裙（膝）</option>
+            <option value="custom">自訂</option>
+          </select></label>
+        <label>腰下長度 <input type="number" name="hemLen" step="0.5" min="-15" max="90" value="0"> <span>cm</span>
+          <small>由腰線度落下擺；負數 = 短身</small></label>
+        <label>下擺
+          <select name="hemShape">
+            <option value="straight">直腳</option>
+            <option value="aline">A 字</option>
+          </select></label>
+        <label>A 字放出 <input type="number" name="flare" step="0.5" min="0" max="30" value="0"> <span>cm</span>
+          <small>每條側縫喺下擺放出</small></label>
+        <label>袖
+          <select name="sleeve">
+            <option value="none">無袖</option>
+            <option value="short">短袖</option>
+            <option value="elbow">七分袖</option>
+            <option value="long">長袖</option>
+          </select></label>
+        <label>袖長 <input type="number" name="sleeveLen" step="0.5" min="0" max="80" value="0"> <span>cm</span>
+          <small>由袖山頂（肩點）度</small></label>
+        <label>鬆緊度
+          <select name="fit">
+            <option value="fitted">修身（有腰褶）</option>
+            <option value="regular">合身</option>
+            <option value="loose">寬鬆（無褶）</option>
+          </select></label>
+        <label class="chk"><input type="checkbox" name="opening"> 前中開胸（加門襟同鈕位）</label>
+        <label>門襟寬 <input type="number" name="ext" step="0.5" min="0.5" max="6" value="2"> <span>cm</span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>③ 身體尺寸（厘米）</legend>
         <label>胸圍 <input type="number" name="bust" step="0.1" min="60" max="160" value="84" required></label>
         <label>腰圍 <input type="number" name="waist" step="0.1" min="45" max="150" value="66" required></label>
+        <label>臀圍 <input type="number" name="hip" step="0.1" min="60" max="170" value="90" required></label>
         <label>肩寬 <input type="number" name="shoulder" step="0.1" min="28" max="55" value="38" required>
           <small>左肩點至右肩點（經後頸）</small></label>
         <label>背長 <input type="number" name="backLen" step="0.1" min="30" max="50" value="38" required>
@@ -26,18 +90,26 @@
           <small>側頸點經胸點至腰線</small></label>
         <label>領圍 <input type="number" name="neck" step="0.1" min="28" max="50" value="36" required></label>
         <label>夾圈 <input type="number" name="armhole" step="0.1" min="30" max="60" value="40" required></label>
+        <label>腰至臀 <input type="number" name="waistToHip" step="0.1" min="10" max="30" value="18" required>
+          <small>腰線至臀圍線（側邊度）</small></label>
+        <label>臂長 <input type="number" name="armLen" step="0.1" min="40" max="75" value="56" required>
+          <small>肩點至手腕（有袖先用）</small></label>
+        <label>上臂圍 <input type="number" name="upperArm" step="0.1" min="18" max="50" value="27" required></label>
+        <label>腕圍 <input type="number" name="wrist" step="0.1" min="12" max="25" value="16" required></label>
       </fieldset>
 
       <fieldset>
-        <legend>放鬆量（厘米，全身計）</legend>
-        <label>胸圍 + <input type="number" name="easeBust" step="0.5" min="0" max="30" value="8"></label>
-        <label>腰圍 + <input type="number" name="easeWaist" step="0.5" min="0" max="30" value="4"></label>
+        <legend>④ 放鬆量（厘米，全身計）</legend>
+        <p class="hint">揀「鬆緊度」會自動填，之後都可以再改。</p>
+        <label>胸圍 + <input type="number" name="easeBust" step="0.5" min="0" max="40" value="6"></label>
+        <label>腰圍 + <input type="number" name="easeWaist" step="0.5" min="0" max="40" value="4"></label>
+        <label>臀圍 + <input type="number" name="easeHip" step="0.5" min="0" max="40" value="4"></label>
         <label>領圍 + <input type="number" name="easeNeck" step="0.5" min="0" max="10" value="0"></label>
         <label>夾圈 + <input type="number" name="easeArmhole" step="0.5" min="0" max="10" value="2"></label>
       </fieldset>
 
       <fieldset>
-        <legend>縫份同裁剪</legend>
+        <legend>⑤ 縫份同裁剪</legend>
         <label>縫份 <input type="number" name="sa" step="0.1" min="0" max="5" value="1"> <span>cm</span></label>
         <label class="chk"><input type="checkbox" name="cfFold" checked> 前中對摺（唔加縫份）</label>
         <label class="chk"><input type="checkbox" name="cbFold" checked> 後中對摺（唔加縫份）</label>

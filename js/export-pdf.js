@@ -119,7 +119,7 @@
     var cv = new Canvas();
     cv.raw(n(K) + ' 0 0 ' + n(-K) + ' 0 ' + n(PH * K) + ' cm');
     cv.color([0, 0, 0]);
-    cv.text('Women\'s Basic Bodice Block (front & back, waist darts)', MG + 5, 22, 6, 0, 'start');
+    cv.text(meta.title || 'Women\'s Top Pattern', MG + 5, 22, 6, 0, 'start');
     cv.text('Print at 100% / "Actual size" on A4 portrait. Do NOT use "Fit to page".', MG + 5, 30, 3.6, 0, 'start');
     cv.text('Check the 10 cm test square below with a ruler before cutting.', MG + 5, 35, 3.6, 0, 'start');
 
@@ -127,7 +127,16 @@
     var y = 46;
     cv.text('Measurements (cm)', MG + 5, y, 4.2, 0, 'start');
     y += 6;
-    (meta.lines || []).forEach(function (ln) { cv.text(ln, MG + 5, y, 3.2, 0, 'start'); y += 4.6; });
+    // 自動換行（左欄闊約 80 mm，唔好壓住測試方格）
+    (meta.lines || []).forEach(function (ln) {
+      var words = String(ln).split(' '), cur = '';
+      words.forEach(function (w) {
+        var t = cur ? cur + ' ' + w : w;
+        if (textWidth(t, 3.2) > 80 && cur) { cv.text(cur, MG + 5, y, 3.2, 0, 'start'); y += 4.6; cur = '  ' + w; }
+        else cur = t;
+      });
+      cv.text(cur, MG + 5, y, 3.2, 0, 'start'); y += 4.6;
+    });
 
     // 10 cm 測試方格
     var sx = 110, sy = 46; // 方格左上角 = (sx - 10, sy)
@@ -189,7 +198,7 @@
       var id = rowName(r) + (c + 1);
       cv.color([0.12, 0.37, 0.75]).text(id, MG + 2, MG - 2.5, 5, 0, 'start');
       cv.color([0, 0, 0]);
-      cv.text('Page ' + pageNo + ' of ' + total + '  |  Women\'s Basic Bodice  |  Print at 100% (Actual size)  |  10 cm test square on page 1',
+      cv.text('Page ' + pageNo + ' of ' + total + '  |  Women\'s Top Pattern  |  Print at 100% (Actual size)  |  10 cm test square on page 1',
         PW / 2, PH - 4, 2.6, 0, 'middle');
       if (c > 0 && used[r][c - 1]) cv.text('< ' + rowName(r) + c, MG - 3, MG + TH / 2, 3, -90, 'middle');
       if (c < cols - 1 && used[r][c + 1]) cv.text(rowName(r) + (c + 2) + ' >', MG + TW + 3, MG + TH / 2, 3, 90, 'middle');
