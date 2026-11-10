@@ -242,25 +242,54 @@
     download(PM.toPDF(current.model, { lines: lines, title: 'Women\'s Top Pattern - ' + NAMES.neckline[v.neckline] + ', ' + NAMES.sleeve[v.sleeve] }), stamp() + '_A4.pdf', 'application/pdf');
   };
 
-  /* ---------- 上傳圖片 + AI 分析 ---------- */
+  /* ---------- 上傳圖片（可多張）+ AI 分析 ---------- */
   var imgInput = document.getElementById('styleImage');
-  var imgWrap = document.getElementById('imgWrap');
-  var imgPreview = document.getElementById('imgPreview');
+  var thumbs = document.getElementById('thumbs');
   var analyzeBtn = document.getElementById('analyze');
   var aiHint = document.getElementById('aiHint');
   var aiResult = document.getElementById('aiResult');
-  var imageFile = null, imageUrl = null, sampleFn = null, aiBusy = false;
+  var images = []; // [{file, url, view}]
+  var maxImages = 6, sampleFn = null, aiBusy = false;
+  var VIEWS = { front: '前面', back: '後面', side: '側面', detail: '細節' };
+  var VIEW_EN = { front: 'front view', back: 'back view', side: 'side view', detail: 'close-up detail' };
+
+  function renderThumbs() {
+    thumbs.innerHTML = '';
+    images.forEach(function (im, i) {
+      var d = document.createElement('div');
+      d.className = 'thumb';
+      var img = document.createElement('img');
+      img.src = im.url; img.alt = '款式圖 ' + (i + 1);
+      var sel = document.createElement('select');
+      Object.keys(VIEWS).forEach(function (k) {
+        var o = document.createElement('option'); o.value = k; o.textContent = VIEWS[k];
+        if (k === im.view) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.onchange = function () { im.view = sel.value; };
+      var rm = document.createElement('button');
+      rm.type = 'button'; rm.className = 'rm'; rm.textContent = '✕'; rm.title = '刪除';
+      rm.onclick = function () { URL.revokeObjectURL(im.url); images.splice(i, 1); renderThumbs(); };
+      d.appendChild(img); d.appendChild(sel); d.appendChild(rm);
+      thumbs.appendChild(d);
+    });
+    analyzeBtn.hidden = !(sampleFn && images.length);
+    document.getElementById('fileBtnText').textContent = images.length
+      ? '＋ 再加相（已有 ' + images.length + ' 張，最多 ' + maxImages + ' 張）'
+      : '＋ 加相（前面、後面、細節都得）';
+  }
 
   imgInput.addEventListener('change', function () {
-    var f = imgInput.files && imgInput.files[0];
-    if (!f) return;
-    imageFile = f;
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl = URL.createObjectURL(f);
-    imgPreview.src = imageUrl;
-    imgWrap.hidden = false;
+    var files = Array.prototype.slice.call(imgInput.files || []);
+    files.forEach(function (f) {
+      if (images.length >= maxImages) return;
+      var hasFront = images.some(function (x) { return x.view === 'front'; });
+      var hasBack = images.some(function (x) { return x.view === 'back'; });
+      images.push({ file: f, url: URL.createObjectURL(f), view: !hasFront ? 'front' : (!hasBack ? 'back' : 'detail') });
+    });
+    imgInput.value = ''; // 等同一張相可以再揀
     aiResult.innerHTML = '';
-    if (sampleFn) analyzeBtn.hidden = false;
+    renderThumbs();
   });
 
   if (hasClaude) {
@@ -269,14 +298,15 @@
       return s.limits().then(function (lim) {
         if (!lim || !lim.images) return;
         sampleFn = s;
-        aiHint.textContent = '上傳衫嘅設計圖或者相，撳「AI 分析款式」，AI 會認出領口、衫長、袖同鬆緊度，自動填好款式。';
-        if (imageFile) analyzeBtn.hidden = false;
+        maxImages = Math.max(1, Math.min(6, lim.images.maxCount || 1));
+        aiHint.textContent = '可以加幾張相（例如前面一張、後面一張），每張下面揀返係邊個角度，再撳「AI 分析款式」，AI 會綜合晒嚟認款式。';
+        renderThumbs();
       });
     }).catch(function () { /* 用唔到 AI：保持手動 */ });
   }
 
   /** 縮細圖片（JPEG，最長邊 1600px） */
-  function shrinkImage(file) {
+  function shrinkImage(im) {
     return new Promise(function (resolve) {
       var img = new Image();
       img.onload = function () {
@@ -286,15 +316,16 @@
         var ctx = c.getContext('2d');
         ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
         ctx.drawImage(img, 0, 0, c.width, c.height);
-        c.toBlob(function (b) { resolve(b || file); }, 'image/jpeg', 0.88);
+        c.toBlob(function (b) { resolve(b || im.file); }, 'image/jpeg', 0.88);
       };
-      img.onerror = function () { resolve(file); };
-      img.src = imageUrl;
+      img.onerror = function () { resolve(im.file); };
+      img.src = im.url;
     });
   }
 
   var AI_PROMPT = [
-    'You are a pattern-making assistant. The image shows a garment design (a sketch, a photo of a worn garment, or a garment on a hanger or mannequin).',
+    'You are a pattern-making assistant. The images show ONE garment design (sketches or photos of it worn, on a hanger or on a mannequin).',
+    'There may be several images of the same garment (front, back, side, close-ups); combine them. Use the back view for the back neckline and back details.',
     'Identify the TOP (upper-body garment or the bodice of a dress) and classify its features for a women\'s pattern generator.',
     'Reply with ONLY a JSON object, no other text, exactly in this shape:',
     '{"isTop": true, "summary": "...", "neckline": "round|v|square|boat", "neckWidth": "narrow|medium|wide|very_wide",',
@@ -378,13 +409,15 @@
   }
 
   analyzeBtn.addEventListener('click', function () {
-    if (!sampleFn || !imageFile || aiBusy) return;
+    if (!sampleFn || !images.length || aiBusy) return;
     aiBusy = true;
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = 'AI 分析緊…（大約半分鐘）';
     aiResult.innerHTML = '';
-    shrinkImage(imageFile).then(function (blob) {
-      return sampleFn.json(AI_PROMPT, { images: [blob] });
+    var list = images.slice(0, maxImages);
+    var desc = '\nThe images, in order: ' + list.map(function (im, i) { return 'image ' + (i + 1) + ' = ' + VIEW_EN[im.view]; }).join('; ') + '.';
+    Promise.all(list.map(shrinkImage)).then(function (blobs) {
+      return sampleFn.json(AI_PROMPT + desc, { images: blobs });
     }).then(function (r) {
       if (!r || typeof r !== 'object') throw { code: 'invalid_json' };
       if (r.isTop === false) {
