@@ -327,8 +327,8 @@
         // 尖角離前中向側縫入少少；門襟邊由最低粒鈕下面斜出去尖角，兩邊前片之間有倒 V 開口
         var tipX = clamp(st.vestOffset == null ? 2 : st.vestOffset, -ext, sideHem.x - 6);
         vestTip = P(tipX, yHc + clamp(st.vestPoint == null ? 5 : st.vestPoint, 0, 15));
-        var lastBtn = yHc - Math.min(8, Math.max(2, L + 4));
-        vestCut = P(cx, clamp(lastBtn + 4, C.y + 6, vestTip.y - 1.5));
+        // 門襟邊由最低粒鈕下 1.5 cm 開始，一條直線斜落：過咗前中就冇門襟，再落到尖角
+        vestCut = P(cx, clamp(vestTip.y - 6, C.y + 6, vestTip.y - 1.5));
         hemPts = [sideHem, vestTip];
         centerEdge = { name: 'center', pts: tipX > cx + 0.1 ? [vestTip, vestCut, P(cx, C.y)] : [vestTip, P(cx, C.y)] };
       } else {
@@ -364,7 +364,7 @@
       if (isFront) marks.push({ type: 'bp', p: P(dX, yB + 2) });
       if (ext) {
         guides.push({ pts: [C, P(0, yHc)], dash: [1, 0.3, 0.2, 0.3], zh: '前中線', en: 'CF' });
-        var b0 = C.y + 1.5, b1 = yHc - Math.min(8, Math.max(2, L + 4));
+        var b0 = C.y + 1.5, b1 = vestCut ? vestCut.y - 1.5 : yHc - Math.min(8, Math.max(2, L + 4));
         if (b1 - b0 > 6) {
           var nB = Math.max(2, Math.round((b1 - b0) / 9) + 1);
           for (var i = 0; i < nB; i++) marks.push({ type: 'button', p: P(0, b0 + (b1 - b0) * i / (nB - 1)) });
