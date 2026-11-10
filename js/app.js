@@ -92,7 +92,27 @@
     document.getElementById('info').innerHTML = html;
   }
 
+  // 喺 claude.ai 預覽頁入面用平台嘅下載功能；一般瀏覽器就用普通下載
+  var claudeDl = (window.claude && typeof window.claude.use === 'function')
+    ? window.claude.use('downloads').catch(function () { return null; }) : null;
+
   function download(data, name, type) {
+    if (claudeDl) {
+      claudeDl.then(function (dl) {
+        if (!dl) return plainDownload(data, name, type);
+        dl.save({ filename: name, data: new Blob([data], { type: type }) }).catch(function (err) {
+          if (err && err.code === 'declined') return;
+          var msg = err && (err.code === 'rejected_extension' || err.code === 'extension_not_enabled')
+            ? '呢個網上預覽版唔支援下載 ' + name.split('.').pop().toUpperCase() + ' 檔，請用 GitHub 版本（見 README）。'
+            : '下載失敗：' + ((err && err.message) || '未知錯誤');
+          showWarnings((current ? current.res.warnings : []).concat([msg]));
+        });
+      });
+      return;
+    }
+    plainDownload(data, name, type);
+  }
+  function plainDownload(data, name, type) {
     var blob = new Blob([data], { type: type });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
