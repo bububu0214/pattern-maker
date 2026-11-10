@@ -47,28 +47,29 @@
     if (ov && (zip === 'elastic' || zip === 'halfElastic')) { zip = 'back'; warnings.push('連身裙用拉鏈，橡筋腰只適用於半截裙。'); }
     var elasticAll = zip === 'elastic', elasticHalf = zip === 'halfElastic';
     var hemSa = st.hemSa;
-    var frontFlat = Wt / 4 + 0.5;                 // 前平：前幅（半件）腰寬
+    var frontFlat = Wt / 4 + 1;                   // 前平：前幅（半件）腰寬
 
     function piece(isFront) {
-      var waistW = ov ? (isFront ? ov.front : ov.back) : (isFront ? Wt / 4 + 0.5 : Wt / 4 - 0.5);
-      var hipW = isFront ? Ht / 4 + 0.5 : Ht / 4 - 0.5;
+      // 前腰 W/4+1、後腰 W/4−1；前臀 H/4+1、後臀 H/4−1（中文裙原型常用分配）
+      var waistW = ov ? (isFront ? ov.front : ov.back) : (isFront ? Wt / 4 + 1 : Wt / 4 - 1);
+      var hipW = isFront ? Ht / 4 + 1 : Ht / 4 - 1;
       // 橡筋腰：冇拉鏈，腰口要拉得過臀圍（全件最少臀圍 + 2）
       var elasticPiece = elasticAll;                // 全橡筋：腰由臀直上，冇褶
       var halfBack = elasticHalf && !isFront;       // 前平後橡筋嘅後幅：照原型畫，唔車褶，後中加闊
       if (elasticAll) waistW = hipW + 0.5;
       var excess = elasticPiece ? 0 : hipW - waistW;
       if (excess < 0) warnings.push('腰圍大過臀圍，裙會冇收腰。');
-      // 側縫收一部份，其餘做褶（每個褶最多 3.5 cm）
-      var side = clamp(excess * 0.4, 0, 3.5);
+      // 腰臀差分三份：⅓ 側縫收，⅔ 做腰褶；褶量 ≤3.5 cm 做一個褶，多過做兩個
+      var side = clamp(excess / 3, 0, 3.5);
       var dartTotal = Math.max(0, excess - side);
       if (elasticPiece) { side = hipW - waistW; dartTotal = 0; }
-      var n = dartTotal < 0.3 ? 0 : (dartTotal > (st.dartXs ? 3.5 : (isFront ? 3 : 2.5)) ? 2 : 1);
+      var n = dartTotal < 0.3 ? 0 : (dartTotal > 3.5 ? 2 : 1);
       if (n && dartTotal / n > 3.5) { side += dartTotal - 3.5 * n; dartTotal = 3.5 * n; }
       if (halfBack) n = 0;                         // 褶位留俾橡筋收
       var dw = n ? dartTotal / n : 0;
 
       var sx = waistW + dartTotal;                 // 側腰點（褶未收）
-      var cy = isFront ? (st.frontDrop || 0) : (ov ? 0 : 0.6);   // 後中腰線落 0.6；連身裙前中跟上身落低
+      var cy = isFront ? (st.frontDrop || 0) : (ov ? 0 : 1);     // 後中腰線落 1 cm；連身裙前中跟上身落低
       var rise0 = elasticAll ? 0 : 0.7;
       if (elasticPiece || halfBack) cy = 0;
       var Sw = P(sx, -rise0);                      // 側腰升 0.7（橡筋腰唔升）
@@ -113,7 +114,8 @@
         var a0 = clamp(dx0 / sx, 0.2, 0.8);
         fr = n === 2 ? [a0, Math.min(0.85, a0 + 4.5 / sx)] : [a0];
       }
-      var dLen = isFront ? [10, 9] : [14, 13];
+      // 褶長：越近側縫越長；後片約臀圍線上 5 cm
+      var dLen = n === 2 ? (isFront ? [10, 11] : [D - 6, D - 5]) : (isFront ? [10.5] : [D - 5.5]);
       var darts = [], feet = [], notches = [];
       var xs = [];
       if (n) {
@@ -122,7 +124,7 @@
           xs.push(x - dw / 2, x + dw / 2);
           var l = B.at(waistCurve, tAtX(waistCurve, x - dw / 2));
           var r = B.at(waistCurve, tAtX(waistCurve, x + dw / 2));
-          var apex = P(x, B.at(waistCurve, tAtX(waistCurve, x)).y + dLen[i]);
+          var apex = P(x + 0.5, B.at(waistCurve, tAtX(waistCurve, x)).y + dLen[i]);   // 褶尖向側縫偏 0.5
           darts.push({ pts: [l, apex, r], closed: false, w: dw, apex: apex });
           feet.push(l, r);
         });
@@ -320,7 +322,8 @@
       return pc;
     }
     var bands = [], Lb;
-    var elasticLen = function (bodyCm) { return Math.round(bodyCm * 0.9); };
+    // 橡筋長度：約 身體尺寸 × 0.9（普通布）至 身體尺寸 − 2（彈力布），試身再調
+    var elasticLen = function (bodyCm) { return Math.round(bodyCm * 0.9) + '–' + Math.round(bodyCm - 2); };
     if (elasticAll) {
       // 全橡筋：一條圈形腰頭（穿橡筋）
       Lb = (qB + qF) * 2 + 2;
@@ -337,7 +340,7 @@
       }));
       bands.push(rectBand('bandBack', '後腰頭（橡筋）', 'BACK ELASTIC CASING', Lbk, bw + 0.5, {
         notchXs: [1 + qB], cutZh: '裁 1 片',
-        foldText: '摺線（穿 ' + f1(bw) + ' cm 橡筋，長約 ' + elasticLen(m.waist + ease.waist - 2 * frontFlat) + ' cm，兩頭車死喺側骨）',
+        foldText: '摺線（穿 ' + f1(bw) + ' cm 橡筋，長約 ' + elasticLen(m.waist - (2 * frontFlat - ease.waist)) + ' cm，兩頭車死喺側骨）',
         dimZh: '後腰頭 ' + f1(Lbk) + '（連兩邊 1 cm 縫份）'
       }));
     } else {
