@@ -441,3 +441,20 @@ h3 .en, .card h3 .en { font-size: .82em; margin-top: 0; color: var(--muted); }
 .nav .en-i { font-size: .95em; }
 .steps li small { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 13px; letter-spacing: .04em; color: var(--muted); line-height: 1.2; }
 @media (max-width: 640px) { .nav .en-i.hide-sm { display: none; } }
+
+/* ---------- upload your own fabric ---------- */
+.fabric.upload { cursor: pointer; }
+.fabric.upload .swatch { background: var(--card); border: 1px dashed var(--ink-soft); display: grid; place-items: center; }
+.fabric.upload.on .swatch { border-style: solid; }
+.plus-big { font-size: 40px; color: var(--rust); line-height: 1; }
+.tryon-box { background: var(--card); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; font-size: 14px; border-left: 2px solid var(--moss); }
+.tryon-box .demo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--ink-soft); }
+.tryon-box .chip { font-size: 13px; padding: 2px 12px; }
+.scale { display: grid; gap: 4px; font-size: 14px; }
+.scale small { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; color: var(--muted); }
+.scale input { width: 100%; accent-color: var(--rust); }
+.pic canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 860px) {
+  .preview.live { position: sticky; top: 66px; z-index: 5; grid-template-columns: 150px 1fr; box-shadow: 0 8px 24px rgba(42,36,32,.12); }
+  .preview.live .pic { width: 150px; }
+}

@@ -7,3 +7,5 @@
 - 款式、布料、尺寸範圍都喺 `site/data.js`，改呢個檔就得
 - 圖片係線稿示意（`site/art.js`），正式版換實物相
 - 正式上線建議搬去 Shopify：訂製款用一個商品選項 app 收尺寸
+- 上傳布料試身：`site/tryon.js`，而家支援 V 領背心同小圓領恤衫前幅。
+  加新款要喺 `tools/make_tryon_layers.py` 描好件衫嘅輪廓，再行一次個 script。
