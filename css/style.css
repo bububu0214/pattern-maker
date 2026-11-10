@@ -119,3 +119,16 @@ label.req textarea {
 
 [hidden] { display: none !important; }
 .sub2 { margin: 12px 0 4px; font-weight: bold; color: #8a4b2a; font-size: .9rem; border-top: 1px dashed #ddd; padding-top: 8px; }
+
+.quick { margin-top: 10px; }
+.quick h4 { margin: 10px 0 4px; font-size: .9rem; color: #8a4b2a; }
+.quick .qhead { display: flex; align-items: center; justify-content: space-between; }
+.quick .row { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick button.chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; padding: 4px 2px 5px;
+  border: 1px solid #d8cfc6; border-radius: 8px; background: #fff; font-size: .72rem; line-height: 1.15; color: #333;
+}
+.quick button.chip svg { width: 40px; height: 40px; }
+.quick button.chip.on { border: 2px solid #8a4b2a; background: #fff4ec; padding: 3px 1px 4px; font-weight: bold; }
+.quick .sub { color: #888; font-size: .78rem; margin: 2px 0 0; }
+.quick summary { cursor: pointer; padding: 8px 10px; background: #fff4ec; border: 1px solid #e3cbb8; border-radius: 8px; color: #8a4b2a; }

@@ -1,9 +1,9 @@
 /* 離線用：第一次開過之後，冇網都用到 */
-var CACHE = 'pattern-maker-v1';
+var CACHE = 'pattern-maker-v2';
 var FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'js/geom.js', 'js/draft.js', 'js/draft-skirt.js', 'js/draft-trousers.js', 'js/modify.js', 'js/layout.js',
-  'js/export-svg.js', 'js/export-dxf.js', 'js/export-pdf.js', 'js/export-seamly.js', 'js/parse-request.js', 'js/app.js',
+  'js/export-svg.js', 'js/export-dxf.js', 'js/export-pdf.js', 'js/export-seamly.js', 'js/parse-request.js', 'js/app.js', 'js/quickpick.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 self.addEventListener('install', function (e) {

@@ -23,6 +23,10 @@ Repo 嘅 Settings → Pages → Source 揀「Deploy from a branch」→ Branch �
 
 之後主畫面有「紙樣」圖示，全螢幕打開，唔使登入；開過一次之後冇網都用到（AI 睇相除外）。
 
+## 唔使 AI 都用到：睇相快選
+
+上傳相之後，喺「睇相快選」逐項撳最似張相嘅圖示（衣物種類、領口、衣領、袖、袖款、衫長、鬆緊、開胸、細節、裙型、裙長、腰／開口、開衩、褲型、褲長、腰），紙樣即刻更新。全程唔使 AI、唔使登入、唔使上網。
+
 ## 用法
 
 1. **上傳款式圖（可選）**：揀衫嘅設計圖或者相，可以加幾張（前面、後面、側面、細節），每張揀返係邊個角度
@@ -154,4 +158,5 @@ js/export-dxf.js    DXF 輸出
 js/export-seamly.js Seamly2D .sm2d 輸出
 js/parse-request.js 唔使 AI 嘅文字要求讀取
 js/app.js           介面控制、上傳圖片、AI 分析
+js/quickpick.js     睇相快選（唔使 AI 嘅圖示選擇）
 ```

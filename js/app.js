@@ -826,6 +826,9 @@
     });
   });
 
+  // 俾「睇相快選」用
+  window.PMApp = { generate: generate, syncControls: syncControls, readForm: readForm };
+
   /* ---------- 啟動 ---------- */
   form.addEventListener('submit', function (e) { e.preventDefault(); generate(); });
   document.getElementById('reset').onclick = function () { writeForm(defaults); generate(); };

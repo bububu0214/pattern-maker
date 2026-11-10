@@ -34,6 +34,7 @@
         <button type="button" id="analyze" hidden>AI 分析款式</button>
         <p id="aiHint" class="hint">寫低要求（例如「V領，短袖，衫長45cm，唔要口袋」）再撳「照文字要求改款式」，唔使登入都用到。喺 claude.ai 網上版仲可以用 AI 睇相認款式；其他情況可以參考張相，自己喺下面揀款式。</p>
         <div id="aiResult"></div>
+        <div id="quickPick" class="quick"></div>
       </fieldset>
 
       <fieldset>
@@ -314,6 +315,7 @@
   <script src="js/export-seamly.js"></script>
   <script src="js/parse-request.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/quickpick.js"></script>
   <script>
     // 網頁 App：有 https 網址（例如 GitHub Pages）先啟用離線功能
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !window.claude) {
