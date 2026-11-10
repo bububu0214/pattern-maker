@@ -82,6 +82,16 @@
     }
     return splitCubic(b, (lo + hi) / 2);
   }
+  function lineBez(a, b) { return [a, G.lerp(a, b, 1 / 3), G.lerp(a, b, 2 / 3), b]; }
+  function bezAt(b, t) { return splitCubic(b, t)[0][3]; }
+  /** 曲線（y 由上至下）去到高度 y 嗰點 */
+  function bezTAtY(b, y) {
+    var lo = 0, hi = 1;
+    for (var i = 0; i < 40; i++) { var mid = (lo + hi) / 2; if (bezAt(b, mid).y < y) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  function bezPointAtY(b, y) { return bezAt(b, bezTAtY(b, y)); }
+  function cutBezAtY(b, y) { return splitCubic(b, bezTAtY(b, y))[0]; }
   function reverseBez(list) {
     return list.slice().reverse().map(function (b) { return [b[3], b[2], b[1], b[0]]; });
   }
@@ -208,24 +218,37 @@
       var yHs = yWB + L, yHc = yWc + L;
       var notches = [];
 
-      // 側縫
-      var sidePts;
+      // 側縫：夾底 → 腰（最窄、垂直）→ 臀（弧形、垂直）→ 下擺，全部順弧
+      var sideBez = [];
+      var dUW = sideW.y - U.y;
+      var tU = G.norm(G.add(G.mul(G.norm(G.sub(sideW, U)), 0.5), P(0, 0.5)));
+      var upper = Math.abs(U.x - sideW.x) < 0.05 ? lineBez(U, sideW)
+        : [U, G.add(U, G.mul(tU, dUW * 0.35)), P(sideW.x, sideW.y - dUW * 0.4), sideW];
       if (L <= 0) {
-        sidePts = [U, P(lineX(U, sideW, yHs), yHs)];
+        sideBez.push(L < 0 ? cutBezAtY(upper, yHs) : upper);
       } else {
-        sidePts = [U, sideW];
-        var hem;
-        if (L <= m.waistToHip) hem = P(lineX(sideW, hipP, yHs), yHs);
-        else hem = P(hipW, yHs);
+        sideBez.push(upper);
+        var hh = hipP.y - sideW.y;
+        var hipCurve = Math.abs(hipP.x - sideW.x) < 0.05 ? lineBez(sideW, hipP)
+          : [sideW, P(sideW.x, sideW.y + hh * 0.35), P(hipP.x, hipP.y - hh * 0.45), hipP];
         if (flare > 0) {
-          hem = P(hem.x + flare, yHs);
-          if (L > m.waistToHip && lineX(sideW, hem, hipP.y) < hipW - 0.01) sidePts.push(hipP);
-        } else if (L > m.waistToHip) {
-          sidePts.push(hipP);
+          var baseX = L <= m.waistToHip ? bezPointAtY(hipCurve, yHs).x : hipW;
+          var hemF = P(baseX + flare, yHs);
+          if (L > m.waistToHip && lineX(sideW, hemF, hipP.y) < hipW - 0.01) {
+            sideBez.push(hipCurve, lineBez(hipP, hemF));
+          } else {
+            var dl = G.dist(sideW, hemF), dd = G.norm(G.sub(hemF, sideW));
+            sideBez.push([sideW, P(sideW.x, sideW.y + dl * 0.3), G.sub(hemF, G.mul(dd, dl * 0.3)), hemF]);
+          }
+        } else if (L <= m.waistToHip) {
+          sideBez.push(cutBezAtY(hipCurve, yHs));
+        } else {
+          sideBez.push(hipCurve, lineBez(hipP, P(hipW, yHs)));
         }
-        sidePts.push(hem);
         notches.push({ edge: 'side', p: sideW, count: 1 });
       }
+      var sideEdge = bezEdge('side', sideBez);
+      var sidePts = sideEdge.pts;
       var sideHem = sidePts[sidePts.length - 1];
 
       // 腰褶
@@ -251,19 +274,47 @@
       var hemPts = [sideHem];
       if (hemDartFeet.length) hemPts = hemPts.concat(hemDartFeet);
       else if (isFront && yHc - yHs > 0.05) hemPts.push(P(Math.min(dX + dW / 2, sideHem.x - 1), yHc));
-      hemPts.push(P(0, yHc));
-      if (ext) hemPts.push(P(cx, yHc));
-
       var C = isFront ? cF : cB, S = isFront ? snpF : snpB;
+
+      // 後中（唔對摺嘅修身／合身款）：腰位收入，由胸圍線順弧落腰，再順返出臀
+      var centerEdge = { name: 'center', pts: [P(cx, yHc), P(cx, C.y)] };
+      var cbIn = !isFront && !st.cbFold && !noDarts ? (st.fit === 'fitted' ? 1 : 0.6) : 0;
+      var cHem = P(cx, yHc);
+      if (cbIn > 0) {
+        var cW = P(cbIn, yWB), cTop = P(0, yB);
+        var up = [cW, P(cbIn, yWB - (yWB - yB) * 0.4), P(0, yB + (yWB - yB) * 0.45), cTop]; // 由腰向上
+        var cList;
+        if (L < 0) {
+          var rev = [cTop, up[2], up[1], cW];               // 由上至下
+          var left = splitCubic(rev, bezTAtY(rev, yHc))[0];  // 胸圍線 → 下擺
+          var seg = [left[3], left[2], left[1], left[0]];
+          cHem = seg[0];
+          cList = [seg, lineBez(cTop, P(0, C.y))];
+        } else if (L === 0) {
+          cHem = cW;
+          cList = [up, lineBez(cTop, P(0, C.y))];
+        } else {
+          var yHipC = Math.min(yHc, yWB + m.waistToHip);
+          var hipC = P(cbIn * Math.max(0, 1 - (yHipC - yWB) / m.waistToHip) * 0.5, yHipC);
+          cList = [];
+          if (yHc > yHipC + 0.05) { cList.push(lineBez(P(hipC.x, yHc), hipC)); }
+          cList.push([hipC, P(hipC.x + (cbIn - hipC.x) * 0.3, hipC.y - (hipC.y - yWB) * 0.5), P(cbIn, yWB + (hipC.y - yWB) * 0.3), cW]);
+          cList.push(up, lineBez(cTop, P(0, C.y)));
+          cHem = cList[0][0];
+        }
+        centerEdge = bezEdge('center', cList);
+      }
+      hemPts.push(P(cbIn > 0 ? cHem.x : 0, yHc));
+      if (ext) hemPts.push(P(cx, yHc));
       var nType = st.neckline;
       if (!isFront && (nType === 'v' || nType === 'square')) nType = 'round';
       var edges = [
         neckEdge(nType, C, S, isFront ? fDir : bDir),
         { name: 'shoulder', pts: [S, isFront ? SF : SB] },
         bezEdge('armhole', isFront ? arm.f : arm.b),
-        { name: 'side', pts: sidePts },
+        sideEdge,
         { name: 'hem', pts: hemPts },
-        { name: 'center', pts: [P(cx, yHc), P(cx, C.y)] }
+        centerEdge
       ];
       if (ext) edges.push({ name: 'extTop', pts: [P(cx, C.y), C] });
       var armMid = (isFront ? arm.f : arm.b)[0][3];
