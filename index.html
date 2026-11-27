@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>訂製衣服報價計算</title>
+<style>
+  :root { --c:#7a4b3a; --bg:#faf6f2; --line:#e6dcd3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif; background:var(--bg); color:#333; }
+  header { background:var(--c); color:#fff; padding:14px 18px; }
+  header h1 { margin:0; font-size:20px; }
+  main { max-width:760px; margin:0 auto; padding:14px; }
+  section { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+  h2 { font-size:16px; margin:0 0 10px; color:var(--c); display:flex; justify-content:space-between; align-items:center; }
+  h2 .sub { font-size:14px; color:#333; font-weight:600; }
+  label { font-size:13px; color:#666; }
+  input, select { font:inherit; padding:7px 8px; border:1px solid var(--line); border-radius:6px; width:100%; background:#fff; }
+  input[type=checkbox] { width:auto; transform:scale(1.2); }
+  .row { display:grid; gap:8px; align-items:end; margin-bottom:8px; }
+  .fab { grid-template-columns:2fr 1fr 1fr 1fr 32px; }
+  .opt { grid-template-columns:24px 1fr 110px; align-items:center; }
+  .two { grid-template-columns:1fr 1fr; }
+  .opt.custom { grid-template-columns:24px 1fr 110px 32px; }
+  .sub-total { text-align:right; font-size:13px; color:#888; }
+  button { font:inherit; border:1px solid var(--c); color:var(--c); background:#fff; border-radius:6px; padding:6px 12px; cursor:pointer; }
+  button.primary { background:var(--c); color:#fff; }
+  button.x { border:none; color:#b55; padding:4px; font-size:18px; }
+  .total { position:sticky; bottom:0; background:var(--c); color:#fff; border-radius:10px; padding:14px 16px; }
+  .total table { width:100%; border-collapse:collapse; font-size:14px; }
+  .total td:last-child { text-align:right; }
+  .total .big td { font-size:22px; font-weight:bold; padding-top:6px; border-top:1px solid rgba(255,255,255,.4); }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .actions button { background:#fff; }
+  .hint { font-size:12px; color:#999; margin:4px 0 0; }
+  details summary { cursor:pointer; color:var(--c); font-size:14px; }
+  .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 16px; border-radius:20px; display:none; }
+  @media (max-width:520px){ .fab { grid-template-columns:1fr 1fr; } .fab .name { grid-column:1/-1; } }
+</style>
+</head>
+<body>
+<header><h1>✂️ 訂製衣服報價計算</h1></header>
+<main>
+
+<section>
+  <h2>客人 / 款式</h2>
+  <div class="row two">
+    <div><label>客人名稱</label><input id="customer" placeholder="例如：陳小姐"></div>
+    <div><label>款式</label><select id="style"></select></div>
+  </div>
+  <p class="hint">揀款式會自動帶入預設手工費同打版費，之後每單都可以自己再改。</p>
+  <details>
+    <summary>編輯款式預設價錢</summary>
+    <div id="presetList" style="margin-top:10px"></div>
+    <button onclick="addPreset()">＋ 新增款式</button>
+    <p class="hint">改完會自動儲存喺呢部機。</p>
+  </details>
+</section>
+
+<section>
+  <h2>布料 <span class="sub" id="fabricSub">$0</span></h2>
+  <div id="fabrics"></div>
+  <button onclick="addFabric()">＋ 加布料</button>
+  <p class="hint">單位可以係碼、米或者件，自己填就得。</p>
+</section>
+
+<section>
+  <h2>手工費 <span class="sub" id="laborSub">$0</span></h2>
+  <div class="row two">
+    <div><label>基本手工費（最低 $380）</label><input id="baseLabor" type="number" min="0"></div>
+    <div><label>額外加減（$）</label><input id="laborAdjust" type="number" value="0"></div>
+  </div>
+  <label>複雜程度 / 加工位</label>
+  <div id="options" style="margin-top:6px"></div>
+  <button onclick="addCustomOpt()">＋ 自訂加工</button>
+</section>
+
+<section>
+  <h2>打版費 <span class="sub" id="patternSub">$0</span></h2>
+  <div class="row opt" style="grid-template-columns:24px 1fr 110px">
+    <input type="checkbox" id="needPattern" checked>
+    <label for="needPattern">需要打版（用返舊紙樣可以剔走）</label>
+    <input id="patternFee" type="number" min="0">
+  </div>
+</section>
+
+<section>
+  <h2>其他</h2>
+  <div class="row two">
+    <div><label>配件（拉鍊、鈕、蕾絲等）$</label><input id="accessories" type="number" value="0" min="0"></div>
+    <div><label>件數</label><input id="qty" type="number" value="1" min="1"></div>
+  </div>
+  <div class="row two">
+    <div><label>趕工加價 %</label><input id="rush" type="number" value="0" min="0"></div>
+    <div><label>折扣 $</label><input id="discount" type="number" value="0" min="0"></div>
+  </div>
+  <p class="hint">件數只乘布料、手工、配件；打版費只收一次。</p>
+</section>
+
+<div class="total">
+  <table>
+    <tr><td>布料</td><td id="tFabric"></td></tr>
+    <tr><td>手工</td><td id="tLabor"></td></tr>
+    <tr><td>打版</td><td id="tPattern"></td></tr>
+    <tr><td>配件</td><td id="tAcc"></td></tr>
+    <tr id="trRush"><td>趕工</td><td id="tRush"></td></tr>
+    <tr id="trDisc"><td>折扣</td><td id="tDisc"></td></tr>
+    <tr class="big"><td>總價</td><td id="tTotal"></td></tr>
+  </table>
+  <div class="actions">
+    <button onclick="copyQuote()">📋 複製報價</button>
+    <button onclick="resetOrder()">🔄 清除重來</button>
+  </div>
+</div>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_PRESETS = [
+  { name:"半裙", labor:380, pattern:200 },
+  { name:"褲", labor:480, pattern:250 },
+  { name:"恤衫 / 上衣", labor:500, pattern:300 },
+  { name:"連身裙", labor:680, pattern:400 },
+  { name:"外套", labor:980, pattern:500 },
+  { name:"旗袍", labor:1200, pattern:600 },
+];
+const DEFAULT_OPTS = [
+  { name:"加裡布", price:100 },
+  { name:"隱形拉鍊", price:50 },
+  { name:"打摺 / 百褶", price:120 },
+  { name:"口袋（每個）", price:60 },
+  { name:"開衩", price:40 },
+  { name:"釘鈕 / 開鈕門", price:80 },
+  { name:"滾邊 / 包邊", price:100 },
+  { name:"對格 / 對條紋", price:150 },
+  { name:"薄布 / 難車布料", price:150 },
+];
+const MIN_LABOR = 380;
+const $ = id => document.getElementById(id);
+const money = n => "$" + Math.round(n).toLocaleString();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let presets = JSON.parse(localStorage.getItem("pm_presets") || "null") || DEFAULT_PRESETS.map(p=>({...p}));
+let opts = DEFAULT_OPTS.map(o => ({...o, on:false}));
+let fabrics = [];
+
+function savePresets(){ localStorage.setItem("pm_presets", JSON.stringify(presets)); }
+
+function renderStyleSelect(keep){
+  const cur = keep ? $("style").value : 0;
+  $("style").innerHTML = presets.map((p,i)=>`<option value="${i}">${esc(p.name)}（手工 $${p.labor}）</option>`).join("");
+  $("style").value = presets[cur] ? cur : 0;
+}
+function renderPresets(){
+  $("presetList").innerHTML = presets.map((p,i)=>`
+    <div class="row" style="grid-template-columns:2fr 1fr 1fr 32px">
+      <div><label>款式</label><input value="${esc(p.name)}" oninput="presets[${i}].name=this.value;savePresets();renderStyleSelect(true)"></div>
+      <div><label>手工</label><input type="number" value="${p.labor}" oninput="presets[${i}].labor=+this.value;savePresets();renderStyleSelect(true)"></div>
+      <div><label>打版</label><input type="number" value="${p.pattern}" oninput="presets[${i}].pattern=+this.value;savePresets()"></div>
+      <button class="x" onclick="presets.splice(${i},1);savePresets();renderPresets();renderStyleSelect()">✕</button>
+    </div>`).join("");
+}
+function addPreset(){ presets.push({name:"新款式",labor:MIN_LABOR,pattern:200}); savePresets(); renderPresets(); renderStyleSelect(true); }
+
+function applyStyle(){
+  const p = presets[$("style").value]; if(!p) return;
+  $("baseLabor").value = p.labor; $("patternFee").value = p.pattern; calc();
+}
+
+function renderFabrics(){
+  $("fabrics").innerHTML = fabrics.map((f,i)=>`
+    <div class="row fab">
+      <div class="name"><label>布料名稱</label><input value="${esc(f.name)}" placeholder="例如：羊毛呢" oninput="fabrics[${i}].name=this.value;calc()"></div>
+      <div><label>單價 $</label><input type="number" value="${f.price}" min="0" oninput="fabrics[${i}].price=+this.value;calc()"></div>
+      <div><label>用量</label><input type="number" value="${f.amount}" min="0" step="0.1" oninput="fabrics[${i}].amount=+this.value;calc()"></div>
+      <div><label>單位</label><input value="${esc(f.unit)}" oninput="fabrics[${i}].unit=this.value;calc()"></div>
+      <button class="x" onclick="fabrics.splice(${i},1);renderFabrics();calc()">✕</button>
+    </div>`).join("");
+}
+function addFabric(){ fabrics.push({name:"",price:0,amount:1,unit:"碼"}); renderFabrics(); calc(); }
+
+function renderOpts(){
+  $("options").innerHTML = opts.map((o,i)=>`
+    <div class="row opt ${o.custom?'custom':''}">
+      <input type="checkbox" ${o.on?"checked":""} onchange="opts[${i}].on=this.checked;calc()">
+      ${o.custom ? `<input value="${esc(o.name)}" placeholder="加工名稱" oninput="opts[${i}].name=this.value;calc()">` : `<span>${esc(o.name)}</span>`}
+      <input type="number" value="${o.price}" oninput="opts[${i}].price=+this.value;calc()">
+      ${o.custom ? `<button class="x" onclick="opts.splice(${i},1);renderOpts();calc()">✕</button>` : ""}
+    </div>`).join("");
+}
+function addCustomOpt(){ opts.push({name:"",price:0,on:true,custom:true}); renderOpts(); calc(); }
+
+function getNums(){
+  const qty = Math.max(1, +$("qty").value || 1);
+  const fabric = fabrics.reduce((s,f)=>s + (f.price||0)*(f.amount||0), 0);
+  const base = Math.max(MIN_LABOR, +$("baseLabor").value || 0);
+  const extras = opts.filter(o=>o.on).reduce((s,o)=>s+(o.price||0),0);
+  const labor = base + extras + (+$("laborAdjust").value || 0);
+  const pattern = $("needPattern").checked ? (+$("patternFee").value || 0) : 0;
+  const acc = +$("accessories").value || 0;
+  const perPiece = fabric + labor + acc;
+  const sub = perPiece*qty + pattern;
+  const rush = sub * (+$("rush").value || 0) / 100;
+  const disc = +$("discount").value || 0;
+  return { qty, fabric, base, extras, labor, pattern, acc, rush, disc, total: Math.max(0, sub + rush - disc) };
+}
+
+function calc(){
+  const n = getNums(), q = n.qty, x = q>1 ? ` ×${q}` : "";
+  $("fabricSub").textContent = money(n.fabric);
+  $("laborSub").textContent = money(n.labor);
+  $("patternSub").textContent = money(n.pattern);
+  $("tFabric").textContent = money(n.fabric*q) + x;
+  $("tLabor").textContent = money(n.labor*q) + x;
+  $("tPattern").textContent = money(n.pattern);
+  $("tAcc").textContent = money(n.acc*q);
+  $("tRush").textContent = "+" + money(n.rush);
+  $("tDisc").textContent = "-" + money(n.disc);
+  $("trRush").style.display = n.rush ? "" : "none";
+  $("trDisc").style.display = n.disc ? "" : "none";
+  $("tTotal").textContent = money(n.total);
+  const bl = $("baseLabor");
+  bl.style.borderColor = (+bl.value < MIN_LABOR) ? "#d66" : "";
+}
+
+function copyQuote(){
+  const n = getNums(), p = presets[$("style").value] || {name:""};
+  const L = [];
+  L.push(`【訂製報價】${$("customer").value ? " " + $("customer").value : ""}`);
+  L.push(`款式：${p.name}${n.qty>1 ? `（${n.qty} 件）` : ""}`);
+  L.push("");
+  fabrics.forEach(f => { if(f.price*f.amount) L.push(`布料 ${f.name||""}：$${f.price} × ${f.amount}${f.unit} = ${money(f.price*f.amount)}`); });
+  L.push(`手工費：${money(n.base)}`);
+  opts.filter(o=>o.on && o.price).forEach(o => L.push(`  + ${o.name}：${money(o.price)}`));
+  const adj = +$("laborAdjust").value || 0;
+  if(adj) L.push(`  ${adj>0?"+":"-"} 其他調整：${money(Math.abs(adj))}`);
+  if(n.pattern) L.push(`打版費：${money(n.pattern)}`);
+  if(n.acc) L.push(`配件：${money(n.acc)}`);
+  if(n.qty>1) L.push(`每件 ${money(n.fabric+n.labor+n.acc)} × ${n.qty} 件`);
+  if(n.rush) L.push(`趕工 +${$("rush").value}%：${money(n.rush)}`);
+  if(n.disc) L.push(`折扣：-${money(n.disc)}`);
+  L.push("");
+  L.push(`總價：${money(n.total)}`);
+  const text = L.join("\n");
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+    .then(()=>toast("已複製報價"))
+    .catch(()=>{ prompt("複製以下報價：", text); });
+}
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",1500); }
+
+function resetOrder(){
+  $("customer").value=""; $("laborAdjust").value=0; $("accessories").value=0; $("qty").value=1;
+  $("rush").value=0; $("discount").value=0; $("needPattern").checked=true;
+  opts = DEFAULT_OPTS.map(o=>({...o,on:false})); fabrics=[{name:"",price:0,amount:1,unit:"碼"}];
+  renderOpts(); renderFabrics(); applyStyle();
+}
+
+document.addEventListener("input", e => { if(e.target.closest("section:not(:first-child)")) calc(); });
+$("needPattern").addEventListener("change", calc);
+$("style").addEventListener("change", applyStyle);
+
+renderStyleSelect(); renderPresets(); resetOrder();
+</script>
+</body>
+</html>

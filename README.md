@@ -1,1 +1,3 @@
-# pattern-maker
+# 訂製衣服報價計算
+
+直接用瀏覽器打開 `index.html` 就可以用。
