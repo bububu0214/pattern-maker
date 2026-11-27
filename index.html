@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>訂製衣服報價計算</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7a4b3a">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="衣服報價">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root { --c:#7a4b3a; --bg:#faf6f2; --line:#e6dcd3; }
   * { box-sizing:border-box; }
@@ -261,6 +269,7 @@ $("needPattern").addEventListener("change", calc);
 $("style").addEventListener("change", applyStyle);
 
 renderStyleSelect(); renderPresets(); resetOrder();
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js");
 </script>
 </body>
 </html>
